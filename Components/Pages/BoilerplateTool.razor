@@ -1,0 +1,366 @@
+@page "/boilerplate-tool"
+@inject IJSRuntime JS
+
+<div class="mb-5">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-pill badge-advanced"><i class="bi bi-box-seam"></i> Project Scaffolder</span>
+    </div>
+    <h1 class="h2 fw-bold text-white mb-2">Revit C# Add-in Solution Boilerplate Generator</h1>
+    <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+        Generate a production-ready, multi-version Revit C# add-in project with proper SDK references, ribbon UI, MVVM architecture, and transaction handling.
+    </p>
+
+    <!-- Configuration Options -->
+    <div class="card-glass p-4 mb-4">
+        <h3 class="h5 fw-bold text-white mb-3"><i class="bi bi-sliders text-cyan me-2"></i>Configure Solution Settings</h3>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold">Project Name</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" @bind="config.ProjectName" />
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold">Target Revit Version</label>
+                <select class="form-select bg-dark text-white border-secondary" @bind="config.RevitVersion">
+                    <option value="2025">Revit 2025 / 2026 (.NET 8 - Modern CoreCLR)</option>
+                    <option value="2024">Revit 2021 - 2024 (.NET Framework 4.8)</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold">Target Framework (Auto)</label>
+                <input type="text" class="form-control bg-black text-cyan border-secondary font-monospace" readonly value="@config.TargetFramework" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkRibbon" @bind="config.IncludeRibbonApp" />
+                    <label class="form-check-label text-white small" for="chkRibbon">Custom Ribbon App (App.cs)</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkWpf" @bind="config.IncludeWpfMvvm" />
+                    <label class="form-check-label text-white small" for="chkWpf">WPF & MVVM ViewModel</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkFilter" @bind="config.IncludeSelectionHelper" />
+                    <label class="form-check-label text-white small" for="chkFilter">ISelectionFilter Helper</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chkFailures" @bind="config.IncludeFailuresPreprocessor" />
+                    <label class="form-check-label text-white small" for="chkFailures">Warning Swallower (Failures)</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scaffolding Output Tabs -->
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn @(selectedTab == "csproj" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => selectedTab = "csproj"'>
+            <i class="bi bi-filetype-xml me-1"></i> @(config.ProjectName).csproj
+        </button>
+        <button class="btn @(selectedTab == "command" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => selectedTab = "command"'>
+            <i class="bi bi-filetype-cs me-1"></i> Command.cs
+        </button>
+        @if (config.IncludeRibbonApp)
+        {
+            <button class="btn @(selectedTab == "app" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => selectedTab = "app"'>
+                <i class="bi bi-window-stack me-1"></i> App.cs (Ribbon)
+            </button>
+        }
+        @if (config.IncludeWpfMvvm)
+        {
+            <button class="btn @(selectedTab == "mvvm" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => selectedTab = "mvvm"'>
+                <i class="bi bi-layout-text-window me-1"></i> ViewModel.cs
+            </button>
+        }
+        <button class="btn @(selectedTab == "manifest" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => selectedTab = "manifest"'>
+            <i class="bi bi-file-code me-1"></i> @(config.ProjectName).addin
+        </button>
+    </div>
+
+@using System.IO.Compression
+@using System.IO
+@using System.Text
+
+    <!-- Code Display Box -->
+    <div class="code-box">
+        <div class="code-header d-flex justify-content-between align-items-center">
+            <span class="code-title font-monospace">@GetActiveFileName()</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-info fw-bold text-dark px-3 py-1" style="font-size:0.75rem;" @onclick="DownloadSolutionZip">
+                    <i class="bi bi-file-earmark-zip-fill me-1"></i>
+                    <span>Download Solution (.zip)</span>
+                </button>
+                <button id="btnCopyBoilerplate" class="code-copy-btn" @onclick="CopyCurrentFile">
+                    <i class="bi bi-clipboard"></i>
+                    <span>Copy File</span>
+                </button>
+            </div>
+        </div>
+        <pre class="code-content" style="max-height: 520px;"><code>@GetActiveFileContent()</code></pre>
+    </div>
+</div>
+
+@code {
+    private BoilerplateConfig config = new();
+    private string selectedTab = "csproj";
+
+    private string GetActiveFileName() => selectedTab switch
+    {
+        "csproj" => $"{config.ProjectName}.csproj",
+        "command" => "Command.cs",
+        "app" => "App.cs",
+        "mvvm" => "MainViewModel.cs",
+        "manifest" => $"{config.ProjectName}.addin",
+        _ => "File"
+    };
+
+    private string GetActiveFileContent() => selectedTab switch
+    {
+        "csproj" => GenerateCsproj(),
+        "command" => GenerateCommand(),
+        "app" => GenerateApp(),
+        "mvvm" => GenerateMvvm(),
+        "manifest" => GenerateManifest(),
+        _ => ""
+    };
+
+    private async Task CopyCurrentFile()
+    {
+        await JS.InvokeVoidAsync("clipboardHelper.copyText", GetActiveFileContent(), "btnCopyBoilerplate");
+    }
+
+    private async Task DownloadSolutionZip()
+    {
+        using var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            void AddFile(string name, string content)
+            {
+                var entry = archive.CreateEntry(name);
+                using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+                writer.Write(content);
+            }
+
+            AddFile($"{config.ProjectName}.csproj", GenerateCsproj());
+            AddFile("Command.cs", GenerateCommand());
+            if (config.IncludeRibbonApp)
+                AddFile("App.cs", GenerateApp());
+            if (config.IncludeWpfMvvm)
+                AddFile("MainViewModel.cs", GenerateMvvm());
+            AddFile($"{config.ProjectName}.addin", GenerateManifest());
+            AddFile("README.md", $@"# {config.ProjectName}
+Generated by Autodesk Revit API & C# Master Academy Solution Scaffolder.
+- Target Revit Version: Revit {config.RevitVersion}
+- Target Framework: {config.TargetFramework}
+- Architecture: {(config.IncludeRibbonApp ? "External Application + External Command" : "External Command")}
+
+## Compilation & Installation Steps:
+1. Open Visual Studio 2022+ and open this project directory.
+2. Build solution in 'Release' configuration for x64 architecture.
+3. Copy the compiled DLL and '{config.ProjectName}.addin' file to:
+   %APPDATA%\Autodesk\Revit\Addins\{config.RevitVersion}\
+4. Start Autodesk Revit {config.RevitVersion}.
+");
+        }
+
+        var base64 = Convert.ToBase64String(memoryStream.ToArray());
+        await JS.InvokeVoidAsync("downloadHelper.downloadFromBase64", $"{config.ProjectName}.zip", "application/zip", base64);
+    }
+
+    private string GenerateCsproj()
+    {
+        return $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{config.TargetFramework}</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>{config.ProjectName}</AssemblyName>
+    <RootNamespace>{config.ProjectName}</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Revit API Assembly References without copying to bin -->
+  <ItemGroup>
+    <Reference Include=""RevitAPI"">
+      <HintPath>C:\Program Files\Autodesk\Revit {config.RevitVersion}\RevitAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include=""RevitAPIUI"">
+      <HintPath>C:\Program Files\Autodesk\Revit {config.RevitVersion}\RevitAPIUI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+</Project>";
+    }
+
+    private string GenerateCommand()
+    {
+        return $@"using System;
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+
+namespace {config.ProjectName};
+
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public class MainCommand : IExternalCommand
+{{
+    public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+    {{
+        try
+        {{
+            UIApplication uiapp = commandData.Application;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Document doc = uidoc.Document;
+
+            using (var trans = new Transaction(doc, ""Execute {config.ProjectName}""))
+            {{
+                trans.Start();
+
+                // TODO: Your Revit API logic here!
+                var wallCount = new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_Walls)
+                    .WhereElementIsNotElementType()
+                    .GetElementCount();
+
+                trans.Commit();
+
+                TaskDialog.Show(""{config.ProjectName}"", $""Successfully processed model! Total walls: {{wallCount}}"");
+            }}
+
+            return Result.Succeeded;
+        }}
+        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+        {{
+            return Result.Cancelled;
+        }}
+        catch (Exception ex)
+        {{
+            message = ex.Message;
+            TaskDialog.Show(""Error"", $""An error occurred:\n{{ex.Message}}"");
+            return Result.Failed;
+        }}
+    }}
+}}";
+    }
+
+    private string GenerateApp()
+    {
+        return $@"using System;
+using System.Reflection;
+using Autodesk.Revit.UI;
+
+namespace {config.ProjectName};
+
+public class App : IExternalApplication
+{{
+    public Result OnStartup(UIControlledApplication application)
+    {{
+        string tabName = ""{config.ProjectName}"";
+        application.CreateRibbonTab(tabName);
+
+        RibbonPanel panel = application.CreateRibbonPanel(tabName, ""Main Tools"");
+        string assemblyPath = Assembly.GetExecutingAssembly().Location;
+
+        PushButtonData btnData = new PushButtonData(
+            ""btnMain"",
+            ""Launch\nTool"",
+            assemblyPath,
+            ""{config.ProjectName}.MainCommand"")
+        {{
+            ToolTip = ""Executes {config.ProjectName} workflow.""
+        }};
+
+        panel.AddItem(btnData);
+        return Result.Succeeded;
+    }}
+
+    public Result OnShutdown(UIControlledApplication application)
+    {{
+        return Result.Succeeded;
+    }}
+}}";
+    }
+
+    private string GenerateMvvm()
+    {
+        return $@"using System;
+using System.ComponentModel;
+using System.Windows.Input;
+
+namespace {config.ProjectName};
+
+public class MainViewModel : INotifyPropertyChanged
+{{
+    private string _statusMessage = ""Ready to process model."";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string StatusMessage
+    {{
+        get => _statusMessage;
+        set
+        {{
+            _statusMessage = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StatusMessage)));
+        }}
+    }}
+
+    public ICommand RunCommand {{ get; }}
+
+    public MainViewModel(Action onExecute)
+    {{
+        RunCommand = new RelayCommand(_ => onExecute());
+    }}
+}}
+
+public class RelayCommand : ICommand
+{{
+    private readonly Action<object?> _execute;
+    private readonly Predicate<object?>? _canExecute;
+
+    public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
+    {{
+        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        _canExecute = canExecute;
+    }}
+
+    public bool CanExecute(object? parameter) => _canExecute == null || _canExecute(parameter);
+    public void Execute(object? parameter) => _execute(parameter);
+    public event EventHandler? CanExecuteChanged
+    {{
+        add => CommandManager.RequerySuggested += value;
+        remove => CommandManager.RequerySuggested -= value;
+    }}
+}}";
+    }
+
+    private string GenerateManifest()
+    {
+        string type = config.IncludeRibbonApp ? "Application" : "Command";
+        string fullClass = config.IncludeRibbonApp ? $"{config.ProjectName}.App" : $"{config.ProjectName}.MainCommand";
+
+        return $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<RevitAddIns>
+  <AddIn Type=""{type}"">
+    <Name>{config.ProjectName}</Name>
+    <Assembly>{config.ProjectName}.dll</Assembly>
+    <FullClassName>{fullClass}</FullClassName>
+    <ClientId>{Guid.NewGuid().ToString().ToUpper()}</ClientId>
+    <VendorId>ADSK</VendorId>
+    <VendorDescription>{config.CompanyName}</VendorDescription>
+  </AddIn>
+</RevitAddIns>";
+    }
+}

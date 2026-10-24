@@ -1,0 +1,466 @@
+@page "/sandbox"
+@inject SimulatorService Simulator
+
+<div class="mb-5">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-pill badge-intermediate"><i class="bi bi-cpu"></i> In-Memory BIM Database Engine</span>
+    </div>
+    <h1 class="h2 fw-bold text-white mb-2">Interactive Revit Query Sandbox</h1>
+    <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+        Simulate real-time <code>FilteredElementCollector</code> queries and parameter inspection against an in-memory Revit commercial building model without needing Revit or CAD installed.
+    </p>
+
+    <!-- One-Click Preset Queries -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="text-secondary small fw-bold text-uppercase" style="font-size:0.7rem;"><i class="bi bi-lightning-fill text-warning me-1"></i>Quick Presets:</span>
+        <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick='() => ApplyPreset("ExteriorWalls")'>🏢 Exterior Walls</button>
+        <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick='() => ApplyPreset("Level1Doors")'>🚪 Level 1 Doors</button>
+        <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick='() => ApplyPreset("AirTerminals")'>❄️ Air Terminals (MEP)</button>
+        <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick='() => ApplyPreset("WallTypes")'>📐 Wall Types</button>
+        <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick='() => ApplyPreset("Level2Windows")'>🪟 Windows on Level 2</button>
+    </div>
+
+    <!-- Practice Challenge Lab Card -->
+    <div class="card-glass p-3 mb-4" style="border: 1px solid rgba(0, 235, 255, 0.3); background: rgba(13, 20, 36, 0.85);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-award-fill text-warning fs-5"></i>
+                <span class="fw-bold text-white small">Challenge Lab:</span>
+                <span class="text-cyan small fw-semibold">@currentChallenge.Title</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" @onclick="NextChallenge">
+                    Next Challenge <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+                <button class="btn btn-sm btn-success py-1 px-3 fw-bold text-white" style="font-size:0.75rem;" @onclick="ValidateChallenge">
+                    <i class="bi bi-patch-check-fill me-1"></i>Verify Solution
+                </button>
+            </div>
+        </div>
+        <p class="text-secondary small mb-1 mt-2">@currentChallenge.Description</p>
+        @if (!string.IsNullOrEmpty(challengeFeedback))
+        {
+            <div class="mt-2 p-2 rounded small @(challengePassed ? "bg-success bg-opacity-25 text-success border border-success" : "bg-danger bg-opacity-25 text-danger border border-danger")">
+                <i class="bi @(challengePassed ? "bi-check-circle-fill" : "bi-x-circle-fill") me-1"></i>
+                @challengeFeedback
+            </div>
+        }
+    </div>
+
+    <!-- Query Builder Card -->
+    <div class="card-glass p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="h5 fw-bold text-white mb-0">
+                <i class="bi bi-funnel-fill text-cyan me-2"></i>Configure FilteredElementCollector
+            </h3>
+            <span class="badge bg-dark border border-secondary text-info">Active Model: @document.Title</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold">BuiltInCategory (.OfCategory)</label>
+                <select class="form-select bg-dark text-white border-secondary" @bind="selectedCategory">
+                    <option value="All">All Categories</option>
+                    <option value="Walls">Walls (OST_Walls)</option>
+                    <option value="Doors">Doors (OST_Doors)</option>
+                    <option value="Windows">Windows (OST_Windows)</option>
+                    <option value="Rooms">Rooms (OST_Rooms)</option>
+                    <option value="Levels">Levels (OST_Levels)</option>
+                    <option value="Structural Columns">Structural Columns</option>
+                    <option value="Air Terminals">Air Terminals (MEP)</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold">Element Filter (Instances vs Types)</label>
+                <select class="form-select bg-dark text-white border-secondary" @bind="selectedInstanceFilter">
+                    <option value="instances">WhereElementIsNotElementType() [Instances]</option>
+                    <option value="types">WhereElementIsElementType() [Types]</option>
+                    <option value="all">Both Instances & Types (No Filter)</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold">Level Filter</label>
+                <select class="form-select bg-dark text-white border-secondary" @bind="selectedLevel">
+                    <option value="All">All Levels</option>
+                    <option value="Level 1">Level 1</option>
+                    <option value="Level 2">Level 2</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold">Parameter Filter (Slow Filter)</label>
+                <div class="input-group">
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Param name (e.g. Mark)" @bind="paramName" />
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Contains..." @bind="paramValue" />
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn-primary-glow" @onclick="ExecuteSimulation">
+                    <i class="bi bi-play-fill fs-5"></i>
+                    <span>Execute Query</span>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ResetFilters">Reset</button>
+            </div>
+            <span class="text-secondary small">
+                Database elements: <strong>@document.Elements.Count</strong> | Active View: <strong>@document.ActiveView</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Live C# Generated Code Preview -->
+    <div class="code-box mb-4">
+        <div class="code-header">
+            <span class="code-title"><i class="bi bi-code-slash me-2"></i>Generated C# Revit API Code</span>
+            <span class="badge bg-dark border border-secondary text-secondary">Dynamically Synced</span>
+        </div>
+        <pre class="code-content"><code>@GenerateCSharpCode()</code></pre>
+    </div>
+
+    <!-- Execution Results & Console Logs -->
+    @if (queryResult != null)
+    {
+        <div class="row g-4 mb-4">
+            <!-- Console Logs -->
+            <div class="col-lg-4">
+                <div class="card-glass p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-white"><i class="bi bi-terminal me-1 text-cyan"></i>Collector Execution Log</span>
+                        <span class="badge bg-success" style="font-size:0.7rem;">@queryResult.ExecutionTimeMs ms</span>
+                    </div>
+                    <div class="p-2 rounded bg-black font-monospace text-secondary small" style="max-height: 250px; overflow-y: auto; font-size: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        @foreach (var log in queryResult.ConsoleLogs)
+                        {
+                            <div class="mb-1 @(log.Contains("QuickFilter") ? "text-cyan" : log.Contains("SlowFilter") ? "text-warning" : "text-light")">
+                                @log
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Summary -->
+            <div class="col-lg-8">
+                <div class="card-glass p-3 h-100 d-flex flex-column justify-content-center">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="fs-2 fw-bold text-cyan">@queryResult.FilteredCount</div>
+                            <div class="small text-secondary text-uppercase fw-bold">Elements Matched</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fs-2 fw-bold text-white">@queryResult.TotalElementsInModel</div>
+                            <div class="small text-secondary text-uppercase fw-bold">Total In Model</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fs-2 fw-bold text-success">@queryResult.ExecutionTimeMs <span style="font-size:0.9rem;">ms</span></div>
+                            <div class="small text-secondary text-uppercase fw-bold">Query Latency</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matched Elements Grid -->
+        <div class="card-glass p-4">
+            <h4 class="h5 fw-bold text-white mb-3">
+                <i class="bi bi-table text-cyan me-2"></i>Matched Elements Inspection (@queryResult.MatchedElements.Count)
+            </h4>
+
+            @if (!queryResult.MatchedElements.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    No elements matched the specified filter criteria. Try adjusting the category or level filters.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.85rem; border-color: var(--border-color);">
+                        <thead>
+                            <tr class="text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                                <th>ElementId</th>
+                                <th>Category</th>
+                                <th>Family & Type</th>
+                                <th>Level</th>
+                                <th>Type / Instance</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var elem in queryResult.MatchedElements)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-black border border-secondary font-monospace text-cyan">#@elem.Id</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-dark border border-secondary text-light">@elem.Category</span>
+                                    </td>
+                                    <td>
+                                        <div class="text-white fw-semibold">@elem.Name</div>
+                                        <div class="text-secondary small font-monospace">@elem.FamilyName : @elem.TypeName</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-secondary">@(string.IsNullOrEmpty(elem.Level) ? "-" : elem.Level)</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(elem.IsElementType ? "bg-info text-dark" : "bg-success text-white")" style="font-size: 0.68rem;">
+                                            @(elem.IsElementType ? "ElementType" : "Instance")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-cyan btn-sm py-0 px-2" style="font-size: 0.75rem; border: 1px solid var(--accent-cyan); color: var(--accent-cyan);"
+                                                @onclick="() => InspectElement(elem)">
+                                            <i class="bi bi-search me-1"></i>Lookup Parameters
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Parameter Inspection Modal / Drawer -->
+    @if (inspectedElement != null)
+    {
+        <div class="mt-4 p-4 card-glass border-info">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="badge bg-info text-dark me-2">RevitLookup Inspector</span>
+                    <strong class="text-white">@inspectedElement.Name (#@inspectedElement.Id)</strong>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => inspectedElement = null">
+                    <i class="bi bi-x-lg"></i> Close Inspector
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-sm table-striped font-monospace" style="font-size: 0.8rem;">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th>Parameter Name</th>
+                            <th>BuiltIn Identifier</th>
+                            <th>StorageType</th>
+                            <th>Internal Value</th>
+                            <th>Display Formatted</th>
+                            <th>IsReadOnly</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var param in inspectedElement.Parameters.Values)
+                        {
+                            <tr>
+                                <td class="text-cyan fw-bold">@param.Name</td>
+                                <td class="text-secondary small">@param.BuiltInName</td>
+                                <td><span class="badge bg-secondary">@param.StorageType</span></td>
+                                <td class="text-light">@(param.Value?.ToString() ?? "null")</td>
+                                <td class="text-warning">@(string.IsNullOrEmpty(param.DisplayUnit) ? "-" : param.DisplayUnit)</td>
+                                <td>
+                                    <span class="badge @(param.IsReadOnly ? "bg-danger" : "bg-success")" style="font-size: 0.65rem;">
+                                        @(param.IsReadOnly ? "ReadOnly" : "Modifiable")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private SimulatedDocument document = new();
+    private string selectedCategory = "Walls";
+    private string selectedInstanceFilter = "instances";
+    private string selectedLevel = "All";
+    private string paramName = "";
+    private string paramValue = "";
+    private QueryResult? queryResult;
+    private SimulatedElement? inspectedElement;
+
+    private record SandboxChallenge(string Title, string Description, Func<QueryResult, bool> Validator);
+
+    private int challengeIndex = 0;
+    private string challengeFeedback = "";
+    private bool challengePassed = false;
+
+    private List<SandboxChallenge> challenges = new()
+    {
+        new SandboxChallenge(
+            "Challenge 1: Exterior Walls Isolation",
+            "Configure the collector to find all placed Wall instances (WhereElementIsNotElementType) on Level 1.",
+            qr => qr.FilteredCount > 0 && qr.MatchedElements.All(e => e.Category == "Walls" && !e.IsElementType && e.Level == "Level 1")),
+        new SandboxChallenge(
+            "Challenge 2: Placed Doors on Level 1",
+            "Collect only placed door instances located on Level 1.",
+            qr => qr.FilteredCount > 0 && qr.MatchedElements.All(e => e.Category == "Doors" && !e.IsElementType && e.Level == "Level 1")),
+        new SandboxChallenge(
+            "Challenge 3: Wall Type Definitions",
+            "Find all Wall ElementTypes (WhereElementIsElementType) across the entire project.",
+            qr => qr.FilteredCount > 0 && qr.MatchedElements.All(e => e.Category == "Walls" && e.IsElementType)),
+        new SandboxChallenge(
+            "Challenge 4: Air Terminals (MEP)",
+            "Query all Air Terminals in the building model to verify mechanical distribution.",
+            qr => qr.FilteredCount > 0 && qr.MatchedElements.All(e => e.Category == "Air Terminals"))
+    };
+
+    private SandboxChallenge currentChallenge => challenges[challengeIndex];
+
+    protected override void OnInitialized()
+    {
+        document = Simulator.GetDocument();
+        ExecuteSimulation();
+    }
+
+    private void NextChallenge()
+    {
+        challengeIndex = (challengeIndex + 1) % challenges.Count;
+        challengeFeedback = "";
+        challengePassed = false;
+    }
+
+    private void ValidateChallenge()
+    {
+        ExecuteSimulation();
+        if (queryResult != null && currentChallenge.Validator(queryResult))
+        {
+            challengePassed = true;
+            challengeFeedback = $"Success! Your query matched {queryResult.FilteredCount} elements and satisfied all challenge conditions.";
+        }
+        else
+        {
+            challengePassed = false;
+            challengeFeedback = "Not quite. Check your Category, Instances vs Types, or Level filters to match the challenge requirements.";
+        }
+    }
+
+    private void ApplyPreset(string preset)
+    {
+        switch (preset)
+        {
+            case "ExteriorWalls":
+                selectedCategory = "Walls";
+                selectedInstanceFilter = "instances";
+                selectedLevel = "Level 1";
+                paramName = "";
+                paramValue = "";
+                break;
+            case "Level1Doors":
+                selectedCategory = "Doors";
+                selectedInstanceFilter = "instances";
+                selectedLevel = "Level 1";
+                paramName = "";
+                paramValue = "";
+                break;
+            case "AirTerminals":
+                selectedCategory = "Air Terminals";
+                selectedInstanceFilter = "instances";
+                selectedLevel = "All";
+                paramName = "";
+                paramValue = "";
+                break;
+            case "WallTypes":
+                selectedCategory = "Walls";
+                selectedInstanceFilter = "types";
+                selectedLevel = "All";
+                paramName = "";
+                paramValue = "";
+                break;
+            case "Level2Windows":
+                selectedCategory = "Windows";
+                selectedInstanceFilter = "instances";
+                selectedLevel = "Level 2";
+                paramName = "";
+                paramValue = "";
+                break;
+        }
+        inspectedElement = null;
+        ExecuteSimulation();
+    }
+
+    private void ExecuteSimulation()
+    {
+        bool? instancesOnly = selectedInstanceFilter switch
+        {
+            "instances" => true,
+            "types" => false,
+            _ => null
+        };
+
+        queryResult = Simulator.ExecuteQuery(
+            selectedCategory, 
+            null, 
+            instancesOnly, 
+            string.IsNullOrWhiteSpace(paramName) ? null : paramName, 
+            string.IsNullOrWhiteSpace(paramValue) ? null : paramValue, 
+            selectedLevel);
+    }
+
+    private void ResetFilters()
+    {
+        selectedCategory = "All";
+        selectedInstanceFilter = "instances";
+        selectedLevel = "All";
+        paramName = "";
+        paramValue = "";
+        inspectedElement = null;
+        ExecuteSimulation();
+    }
+
+    private void InspectElement(SimulatedElement elem)
+    {
+        inspectedElement = elem;
+    }
+
+    private string GenerateCSharpCode()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("// 1. Create Collector bound to active document");
+        sb.AppendLine("FilteredElementCollector collector = new FilteredElementCollector(doc);");
+
+        if (selectedCategory != "All")
+        {
+            sb.AppendLine($"// 2. Quick Filter: BuiltInCategory.OST_{selectedCategory}");
+            sb.AppendLine($"collector.OfCategory(BuiltInCategory.OST_{selectedCategory});");
+        }
+
+        if (selectedInstanceFilter == "instances")
+        {
+            sb.AppendLine("// 3. Quick Filter: Ignore FamilySymbol & ElementTypes");
+            sb.AppendLine("collector.WhereElementIsNotElementType();");
+        }
+        else if (selectedInstanceFilter == "types")
+        {
+            sb.AppendLine("// 3. Quick Filter: Types only");
+            sb.AppendLine("collector.WhereElementIsElementType();");
+        }
+
+        if (selectedLevel != "All")
+        {
+            sb.AppendLine($"// 4. Parameter Filter: Level = {selectedLevel}");
+            sb.AppendLine($"ElementLevelFilter levelFilter = new ElementLevelFilter(levelId);");
+            sb.AppendLine($"collector.WherePasses(levelFilter);");
+        }
+
+        if (!string.IsNullOrWhiteSpace(paramName) && !string.IsNullOrWhiteSpace(paramValue))
+        {
+            sb.AppendLine($"// 5. Custom LINQ Post-filter");
+            sb.AppendLine($"var elements = collector.Where(e => e.LookupParameter(\"{paramName}\")?.AsString()?.Contains(\"{paramValue}\") == true).ToList();");
+        }
+        else
+        {
+            sb.AppendLine("// 6. Materialize elements");
+            sb.AppendLine("IList<Element> elements = collector.ToElements();");
+        }
+
+        return sb.ToString();
+    }
+}

@@ -1,0 +1,338 @@
+@page "/account"
+@inject AuthService Auth
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<PageTitle>Account Settings | Revit & C# Academy</PageTitle>
+
+<div class="row justify-content-center my-4">
+    <div class="col-lg-9 col-xl-8">
+        @if (!Auth.IsAuthenticated)
+        {
+            <div class="card-glass p-5 text-center">
+                <i class="bi bi-person-lock text-cyan fs-1 mb-3 d-block"></i>
+                <h2 class="h4 fw-bold text-white mb-2">Sign-In Required</h2>
+                <p class="text-secondary small mb-4">Please sign in to your account to view and update your profile details.</p>
+                <a href="login" class="btn-primary-glow">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Account
+                </a>
+            </div>
+        }
+        else
+        {
+            var user = Auth.CurrentUser!;
+
+            <!-- Profile Summary Card -->
+            <div class="cad-card cad-bracket p-4 mb-4" style="border-left: 4px solid @(Auth.IsAdmin ? "var(--accent-purple)" : "var(--accent-cyan)");">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow" 
+                             style="width: 58px; height: 58px; background: @user.AvatarColor; font-size: 1.5rem;">
+                            @user.FullName.Substring(0, 1)
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h1 class="h4 fw-bold text-white mb-0">@user.FullName</h1>
+                                <span class="badge @(user.Role == UserRole.Admin ? "bg-purple text-white" : "badge-beginner")" style="font-size: 0.72rem;">
+                                    <i class="bi @(user.Role == UserRole.Admin ? "bi-shield-check" : "bi-mortarboard") me-1"></i>
+                                    @user.Role
+                                </span>
+                            </div>
+                            <div class="text-secondary small">@user.Title &bull; @user.Organization</div>
+                            <div class="text-muted small" style="font-size:0.75rem;">Username: <code class="text-cyan">@user.Username</code> &bull; Email: <code>@user.Email</code></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        @if (Auth.IsAdmin)
+                        {
+                            <a href="admin" class="btn btn-sm btn-outline-glow" style="border-color: var(--accent-purple); color: #c084fc;">
+                                <i class="bi bi-shield-lock me-1"></i> Admin Panel
+                            </a>
+                        }
+                        <button class="btn btn-sm btn-outline-danger" @onclick="HandleLogout">
+                            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Selectors -->
+            <div class="d-flex gap-2 mb-4 border-bottom border-secondary pb-2" style="border-color: var(--border-color) !important;">
+                <button class="btn @(activeTab == "profile" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => activeTab = "profile"'>
+                    <i class="bi bi-person-lines-fill me-1"></i> Profile Information
+                </button>
+                <button class="btn @(activeTab == "security" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => activeTab = "security"'>
+                    <i class="bi bi-key-fill me-1"></i> Password & Security
+                </button>
+                @if (Auth.IsAdmin)
+                {
+                    <button class="btn @(activeTab == "enroll" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" 
+                            style="@(activeTab == "enroll" ? "background: linear-gradient(135deg, #7c3aed, #a855f7) !important;" : "")"
+                            @onclick='() => activeTab = "enroll"'>
+                        <i class="bi bi-person-plus-fill me-1"></i> User Enrollment & Credentials
+                    </button>
+                }
+            </div>
+
+            <!-- TAB 1: PROFILE INFORMATION -->
+            @if (activeTab == "profile")
+            {
+                <div class="card-glass p-4">
+                    <h2 class="h5 fw-bold text-white mb-3">Edit Profile Details</h2>
+
+                    @if (profileUpdatedSuccess)
+                    {
+                        <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Profile details updated successfully!</span>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(profileErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>@profileErrorMessage</span>
+                        </div>
+                    }
+
+                    <form @onsubmit="HandleSaveProfile">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">Full Name</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                       @bind="profileFullName" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">Username</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                       @bind="profileUsername" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">Email Address</label>
+                            <input type="email" class="form-control bg-dark border-secondary text-white" 
+                                   @bind="profileEmail" required />
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">Job Title</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                       @bind="profileTitle" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">Company / Organization</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                       @bind="profileOrganization" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn-primary-glow px-4">
+                                <i class="bi bi-save me-1"></i> Save Profile Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <!-- TAB 2: PASSWORD & SECURITY -->
+            @if (activeTab == "security")
+            {
+                <div class="card-glass p-4">
+                    <h2 class="h5 fw-bold text-white mb-3">Change Account Password</h2>
+
+                    @if (passwordUpdatedSuccess)
+                    {
+                        <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Password changed successfully! Keep your new password secure.</span>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(passwordErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>@passwordErrorMessage</span>
+                        </div>
+                    }
+
+                    <form @onsubmit="HandleChangePassword">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">Current Password</label>
+                            <input type="password" class="form-control bg-dark border-secondary text-white" 
+                                   placeholder="••••••••" 
+                                   @bind="currentPasswordInput" required />
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">New Password</label>
+                                <input type="password" class="form-control bg-dark border-secondary text-white" 
+                                       placeholder="Minimum 4 characters" 
+                                       @bind="newPasswordInput" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary small fw-bold">Confirm New Password</label>
+                                <input type="password" class="form-control bg-dark border-secondary text-white" 
+                                       placeholder="Repeat new password" 
+                                       @bind="confirmPasswordInput" required />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn-primary-glow px-4">
+                                <i class="bi bi-shield-lock me-1"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <!-- TAB 3: ADMIN ENROLLMENT SHORTCUT -->
+            @if (activeTab == "enroll" && Auth.IsAdmin)
+            {
+                <div class="card-glass p-4" style="border: 1px solid var(--accent-purple);">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="p-3 rounded" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); font-size: 1.5rem;">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div>
+                            <h2 class="h5 fw-bold text-white mb-1">User Enrollment & Credentials Management</h2>
+                            <p class="text-secondary small mb-0">Enroll new students, architects, and engineers into the academy and issue their login credentials.</p>
+                        </div>
+                    </div>
+
+                    <p class="text-secondary small mb-4">
+                        As an Administrator, you have full authority to enroll candidates, generate secure passwords, assign roles, and view all active credentials across the academy.
+                    </p>
+
+                    <div class="d-flex gap-3">
+                        <a href="admin" class="btn-primary-glow" style="background: linear-gradient(135deg, #7c3aed, #a855f7) !important;">
+                            <i class="bi bi-speedometer2 me-1"></i> Go to Admin Enrollment Suite
+                        </a>
+                        <a href="support" class="btn-outline-glow">
+                            <i class="bi bi-headset me-1"></i> View Support Tickets
+                        </a>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "profile";
+
+    // Profile form
+    private string profileFullName = "";
+    private string profileEmail = "";
+    private string profileUsername = "";
+    private string profileTitle = "";
+    private string profileOrganization = "";
+    private bool profileUpdatedSuccess = false;
+    private string? profileErrorMessage;
+
+    // Password form
+    private string currentPasswordInput = "";
+    private string newPasswordInput = "";
+    private string confirmPasswordInput = "";
+    private bool passwordUpdatedSuccess = false;
+    private string? passwordErrorMessage;
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += HandleAuthStateChanged;
+        LoadUserData();
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        LoadUserData();
+        StateHasChanged();
+    }
+
+    private void LoadUserData()
+    {
+        if (Auth.IsAuthenticated && Auth.CurrentUser != null)
+        {
+            var u = Auth.CurrentUser;
+            profileFullName = u.FullName;
+            profileEmail = u.Email;
+            profileUsername = u.Username;
+            profileTitle = u.Title;
+            profileOrganization = u.Organization;
+        }
+    }
+
+    private void HandleSaveProfile()
+    {
+        profileErrorMessage = null;
+        profileUpdatedSuccess = false;
+
+        if (!Auth.IsAuthenticated || Auth.CurrentUser == null) return;
+
+        var (success, error) = Auth.UpdateProfile(
+            Auth.CurrentUser.Id,
+            profileFullName,
+            profileEmail,
+            profileUsername,
+            profileTitle,
+            profileOrganization);
+
+        if (success)
+        {
+            profileUpdatedSuccess = true;
+        }
+        else
+        {
+            profileErrorMessage = error ?? "Failed to update profile.";
+        }
+    }
+
+    private void HandleChangePassword()
+    {
+        passwordErrorMessage = null;
+        passwordUpdatedSuccess = false;
+
+        if (!Auth.IsAuthenticated || Auth.CurrentUser == null) return;
+
+        if (newPasswordInput != confirmPasswordInput)
+        {
+            passwordErrorMessage = "New password and confirmation password do not match.";
+            return;
+        }
+
+        var (success, error) = Auth.ChangePassword(
+            Auth.CurrentUser.Id,
+            currentPasswordInput,
+            newPasswordInput);
+
+        if (success)
+        {
+            passwordUpdatedSuccess = true;
+            currentPasswordInput = "";
+            newPasswordInput = "";
+            confirmPasswordInput = "";
+        }
+        else
+        {
+            passwordErrorMessage = error ?? "Failed to update password.";
+        }
+    }
+
+    private void HandleLogout()
+    {
+        Auth.Logout();
+        NavManager.NavigateTo("login");
+    }
+}

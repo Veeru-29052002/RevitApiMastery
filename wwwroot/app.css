@@ -1,0 +1,1028 @@
+:root {
+    /* Base Architecture Palette */
+    --bg-canvas: #070B12;
+    --bg-surface: #0B111E;
+    --bg-surface-hover: #121C30;
+    --bg-card: rgba(13, 20, 36, 0.82);
+    --bg-card-hover: rgba(19, 31, 56, 0.95);
+    --bg-blueprint: #060D1A;
+    
+    /* Technical Drafting Grid & Borders */
+    --grid-line-major: rgba(0, 240, 255, 0.08);
+    --grid-line-minor: rgba(255, 255, 255, 0.025);
+    --border-color: rgba(148, 163, 184, 0.14);
+    --border-highlight: rgba(0, 240, 255, 0.4);
+    --border-bright: #00F0FF;
+    
+    /* High-Vibrancy Revit / Cyber-BIM Accents */
+    --accent-cyan: #00F0FF;
+    --accent-cyan-glow: rgba(0, 240, 255, 0.25);
+    --accent-blue: #0078D4;
+    --accent-blue-deep: #0B2545;
+    --accent-purple: #A855F7;
+    --accent-purple-glow: rgba(168, 85, 247, 0.25);
+    --accent-green: #00FF9D;
+    --accent-green-glow: rgba(0, 255, 157, 0.2);
+    --accent-amber: #FFB800;
+    --accent-rose: #FF3366;
+    
+    /* Typography */
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-tertiary: #64748B;
+    --text-blueprint: #38BDF8;
+    
+    --sidebar-width: 275px;
+    --header-height: 68px;
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    
+    --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 35px -5px rgba(0, 240, 255, 0.3);
+    --shadow-card: 0 12px 36px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+a:hover {
+    color: #7df9ff;
+    text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+/* ==========================================================================
+   CAD BLUEPRINT CANVAS & GRID SYSTEM
+   ========================================================================== */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-canvas);
+    /* Dual CAD Blueprint Grid + Ambient Radial Blooms */
+    background-image: 
+        radial-gradient(circle at 85% 15%, rgba(0, 240, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 10% 85%, rgba(168, 85, 247, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(0, 120, 212, 0.04) 0%, transparent 65%),
+        linear-gradient(to right, var(--grid-line-major) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line-major) 1px, transparent 1px),
+        linear-gradient(to right, var(--grid-line-minor) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line-minor) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+    background-position: 0 0, 0 0, 0 0, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+}
+
+/* ==========================================================================
+   SIDEBAR - REVIT PROJECT BROWSER & PROPERTIES WORKSPACE
+   ========================================================================== */
+.app-sidebar {
+    width: var(--sidebar-width);
+    background: rgba(10, 16, 28, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-header {
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.04) 0%, transparent 100%);
+    position: relative;
+}
+
+.sidebar-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0.6;
+}
+
+.brand-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #0052CC 0%, #00F0FF 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #070B12;
+    font-weight: 900;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.brand-icon::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.6) 50%, transparent 60%);
+    animation: iconShine 4s infinite linear;
+}
+
+@keyframes iconShine {
+    0% { transform: translateX(-100%); }
+    25%, 100% { transform: translateX(100%); }
+}
+
+.brand-title {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.brand-badge {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: var(--accent-cyan);
+    padding: 3px 8px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+
+/* Revit Ribbon Track Switcher */
+.sidebar-track-toggle {
+    padding: 0.75rem 1rem;
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(6, 11, 20, 0.8);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.track-btn {
+    flex: 1;
+    padding: 0.5rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border-radius: var(--radius-xs);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.track-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.track-btn.csharp.active {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.05));
+    border-color: var(--accent-purple);
+    color: #e9d5ff;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.track-btn.revit.active {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 120, 212, 0.08));
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Revit Browser Tree Navigation */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0.6rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 255, 0.2) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.25);
+    border-radius: 4px;
+}
+
+.nav-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-tertiary);
+    padding: 0.75rem 0.75rem 0.35rem 0.75rem;
+    font-weight: 700;
+}
+
+.topic-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    border-radius: var(--radius-xs);
+    border: 1px solid transparent;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.topic-link:hover {
+    color: var(--text-primary);
+    background: rgba(0, 240, 255, 0.05);
+    border-color: rgba(0, 240, 255, 0.15);
+    transform: translateX(2px);
+}
+
+.topic-link.active {
+    color: var(--accent-cyan);
+    background: linear-gradient(90deg, rgba(0, 240, 255, 0.12), transparent);
+    border-left: 2px solid var(--accent-cyan);
+    font-weight: 600;
+}
+
+/* Sidebar Module Group Accordions */
+.module-group {
+    margin-bottom: 0.35rem;
+}
+
+.module-header-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xs);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    text-align: left;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+.module-header-btn:hover {
+    background: rgba(0, 240, 255, 0.08);
+    border-color: rgba(0, 240, 255, 0.3);
+    color: var(--accent-cyan);
+}
+
+.module-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topic-list {
+    margin-top: 0.25rem;
+    padding-left: 0.35rem;
+    border-left: 1px dashed rgba(0, 240, 255, 0.15);
+    margin-left: 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+/* ==========================================================================
+   APP HEADER & TELEMETRY HUD
+   ========================================================================== */
+.app-main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    min-width: 0;
+    max-width: calc(100vw - var(--sidebar-width));
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    height: var(--header-height);
+    background: rgba(8, 14, 25, 0.88);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.search-container {
+    position: relative;
+    width: 320px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 0.85rem 0.5rem 2.4rem;
+    background: rgba(6, 11, 20, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: rgba(6, 11, 20, 0.95);
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(11, 18, 32, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-highlight);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    max-height: 380px;
+    overflow-y: auto;
+    z-index: 200;
+}
+
+.search-item {
+    padding: 0.8rem 1.1rem;
+    display: block;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transition: background 0.15s ease;
+}
+
+.search-item:hover {
+    background: rgba(0, 240, 255, 0.08);
+}
+
+.search-item-title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--accent-cyan);
+}
+
+.search-item-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.header-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nav-tool-link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-tool-link:hover, .nav-tool-link.active {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.progress-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(6, 11, 20, 0.6);
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.progress-bar-micro {
+    width: 60px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill-micro {
+    height: 100%;
+    background: linear-gradient(90deg, #0078D4, #00F0FF);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* ==========================================================================
+   CAD DRAFTING CARDS & ARCHITECTURAL CONTAINERS
+   ========================================================================== */
+.page-content {
+    flex: 1;
+    padding: 1.5rem 1.75rem 3rem 1.75rem;
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Bespoke CAD Blueprint Card with Precision Corner Crosshairs */
+.cad-card, .card-glass {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-top: 1px solid rgba(0, 240, 255, 0.45);
+    border-radius: var(--radius-md);
+    padding: 1.75rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-card);
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cad-card:hover, .card-glass:hover {
+    border-color: rgba(0, 240, 255, 0.35);
+    border-top-color: var(--accent-cyan);
+    box-shadow: var(--shadow-glow), var(--shadow-card);
+    transform: translateY(-2px);
+}
+
+/* CAD Corner Drafting Brackets */
+.cad-bracket {
+    position: relative;
+}
+
+.cad-bracket::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    width: 12px;
+    height: 12px;
+    border-top: 2px solid var(--accent-cyan);
+    border-left: 2px solid var(--accent-cyan);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.cad-bracket::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-bottom: 2px solid var(--accent-cyan);
+    border-right: 2px solid var(--accent-cyan);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Architectural Drawing Title Block Header */
+.cad-drawing-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 3px 8px;
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: var(--radius-xs);
+}
+
+.cad-drawing-tag strong {
+    color: var(--accent-cyan);
+}
+
+/* Technical Telemetry HUD Bar (Sub-header in MainLayout) */
+.hud-telemetry-bar {
+    background: rgba(6, 10, 18, 0.95);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+    padding: 0.35rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.hud-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.hud-item strong {
+    color: var(--text-secondary);
+}
+
+.hud-beacon {
+    width: 7px;
+    height: 7px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-green);
+    animation: beaconPulse 2s infinite ease-in-out;
+}
+
+@keyframes beaconPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+/* ==========================================================================
+   INTERACTIVE 3D ISOMETRIC BIM WIREFRAME BUILDING
+   ========================================================================== */
+.bim-model-stage {
+    position: relative;
+    width: 100%;
+    height: 380px;
+    background: radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.08) 0%, transparent 70%),
+                rgba(5, 9, 16, 0.9);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0, 240, 255, 0.04);
+}
+
+.bim-model-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+}
+
+/* LiDAR / Collector Scan Plane Animation */
+.lidar-scan-beam {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00F0FF, #00FF9D, #00F0FF, transparent);
+    box-shadow: 0 0 15px #00F0FF, 0 0 30px rgba(0, 240, 255, 0.8);
+    pointer-events: none;
+    z-index: 10;
+    animation: lidarSweep 4.5s ease-in-out infinite alternate;
+}
+
+@keyframes lidarSweep {
+    0% { top: 12%; opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { top: 82%; opacity: 0.4; }
+}
+
+.bim-element-chip {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(11, 18, 32, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    color: var(--accent-cyan);
+    position: absolute;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 12;
+    animation: chipFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes chipFloat {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-4px); }
+}
+
+/* ==========================================================================
+   CODE BLOCKS & TECHNICAL DISPLAY
+   ========================================================================== */
+.code-box {
+    margin: 1.5rem 0;
+    background: #050811;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-top: 2px solid var(--accent-cyan);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.code-header {
+    background: #090F1E;
+    padding: 0.65rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.code-title {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.code-copy-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+
+.code-copy-btn:hover {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--accent-cyan);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+}
+
+.code-copy-btn.copied {
+    background: rgba(0, 255, 157, 0.2);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.code-content {
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    line-height: 1.7;
+    color: #e2e8f0;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* ==========================================================================
+   BUTTONS & BADGES
+   ========================================================================== */
+.btn-primary-glow {
+    background: linear-gradient(135deg, #0078D4 0%, #00F0FF 100%);
+    color: #050811 !important;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    border: none;
+    padding: 0.65rem 1.45rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    color: #050811 !important;
+}
+
+.btn-outline-glow {
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid var(--border-highlight);
+    color: var(--accent-cyan);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    padding: 0.6rem 1.3rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-outline-glow:hover {
+    background: rgba(0, 240, 255, 0.12);
+    border-color: var(--accent-cyan);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.badge-beginner {
+    background: rgba(0, 255, 157, 0.12);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+}
+
+.badge-intermediate {
+    background: rgba(0, 240, 255, 0.12);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.badge-advanced {
+    background: rgba(168, 85, 247, 0.12);
+    color: var(--accent-purple);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.badge-expert {
+    background: rgba(255, 184, 0, 0.12);
+    color: var(--accent-amber);
+    border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+.text-cyan { color: var(--accent-cyan) !important; }
+.text-purple { color: var(--accent-purple) !important; }
+.text-green { color: var(--accent-green) !important; }
+.bg-purple { background: var(--accent-purple) !important; }
+
+/* Pitfall Box */
+.pitfall-container {
+    margin: 1.5rem 0;
+    border-radius: var(--radius-md);
+    background: rgba(255, 51, 102, 0.04);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    border-left: 4px solid var(--accent-rose);
+    padding: 1.5rem;
+}
+
+.pitfall-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--accent-rose);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+}
+
+.pitfall-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 992px) {
+    .pitfall-grid { grid-template-columns: 1fr; }
+}
+
+.code-bad {
+    background: rgba(20, 8, 14, 0.85);
+    border: 1px solid rgba(255, 51, 102, 0.35);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.code-bad .code-tag {
+    background: rgba(255, 51, 102, 0.2);
+    color: var(--accent-rose);
+    font-family: var(--font-mono);
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.code-good {
+    background: rgba(8, 22, 16, 0.85);
+    border: 1px solid rgba(0, 255, 157, 0.35);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.code-good .code-tag {
+    background: rgba(0, 255, 157, 0.2);
+    color: var(--accent-green);
+    font-family: var(--font-mono);
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* Quiz Box */
+.quiz-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.quiz-option-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.85rem 1.1rem;
+    margin: 0.5rem 0;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.quiz-option-btn:hover {
+    border-color: var(--accent-cyan);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.quiz-option-btn.correct {
+    background: rgba(0, 255, 157, 0.15) !important;
+    border-color: var(--accent-green) !important;
+    color: #4ade80 !important;
+}
+
+.quiz-option-btn.incorrect {
+    background: rgba(255, 51, 102, 0.15) !important;
+    border-color: var(--accent-rose) !important;
+    color: #f87171 !important;
+}
+
+.quiz-explanation {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    border-left: 3px solid var(--accent-cyan);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .app-sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .app-main {
+        margin-left: 0;
+    }
+    
+    .page-content {
+        padding: 1.25rem;
+    }
+    
+    .hud-telemetry-bar {
+        display: none;
+    }
+}
+
+/* Full-Screen High-Security Authentication Gateway */
+.auth-gate-canvas {
+    min-height: 100vh;
+    width: 100%;
+    background-color: var(--bg-canvas);
+    background-image: 
+        radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        linear-gradient(to right, var(--grid-line-major) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line-major) 1px, transparent 1px),
+        linear-gradient(to right, var(--grid-line-minor) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line-minor) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+    background-position: 0 0, 0 0, -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+}

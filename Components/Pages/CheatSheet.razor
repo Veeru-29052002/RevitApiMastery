@@ -1,0 +1,293 @@
+@page "/cheatsheet"
+@inject IJSRuntime JS
+
+<div class="mb-5">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-pill badge-beginner"><i class="bi bi-bookmark-star"></i> Quick Reference</span>
+    </div>
+    <h1 class="h2 fw-bold text-white mb-2">Revit API & C# Method Cheat Sheet</h1>
+    <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+        Instant reference cards for the most frequently used Revit API methods, unit conversions, vector math formulas, and transactional boilerplate snippets.
+    </p>
+
+    <!-- Search and Filter Bar -->
+    <div class="card-glass p-3 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search snippet or method (e.g. UnitUtils, XYZ, Collector)..." @bind="searchFilter" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn @(selectedCategory == "All" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "All"'>All</button>
+                    <button class="btn @(selectedCategory == "Collectors" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "Collectors"'>Collectors</button>
+                    <button class="btn @(selectedCategory == "Units & Math" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "Units & Math"'>Units & Math</button>
+                    <button class="btn @(selectedCategory == "Geometry" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "Geometry"'>Geometry</button>
+                    <button class="btn @(selectedCategory == "Transactions" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "Transactions"'>Transactions</button>
+                    <button class="btn @(selectedCategory == "Modeless & Events" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "Modeless & Events"'>Modeless & Events</button>
+                    <button class="btn @(selectedCategory == "C# LINQ" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "C# LINQ"'>C# LINQ</button>
+                    <button class="btn @(selectedCategory == "C# Modern Patterns" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "C# Modern Patterns"'>C# Modern Patterns</button>
+                    <button class="btn @(selectedCategory == "C# Async & Tasks" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "C# Async & Tasks"'>C# Async & Tasks</button>
+                    <button class="btn @(selectedCategory == "C# Generics" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm" @onclick='() => selectedCategory = "C# Generics"'>C# Generics</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cheat Sheet Cards -->
+    <div class="row g-4">
+        @foreach (var (item, idx) in GetFilteredCards().Select((c, i) => (c, i)))
+        {
+            <div class="col-lg-6">
+                <div class="card-glass h-100 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge @(item.Category.StartsWith("C#") ? "bg-purple text-white" : "bg-dark border border-secondary text-cyan") small mb-1">@item.Category</span>
+                            <h4 class="h5 fw-bold text-white mb-1">@item.Title</h4>
+                        </div>
+                        <button id="cs-copy-@idx" class="code-copy-btn" @onclick='() => CopySnippet(item.Snippet, $"cs-copy-{idx}")'>
+                            <i class="bi bi-clipboard"></i>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+
+                    <p class="text-secondary small mb-3">@item.Description</p>
+
+                    <div class="code-box my-0 flex-grow-1">
+                        <pre class="code-content" style="max-height: 240px;"><code>@item.Snippet</code></pre>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string searchFilter = "";
+    private string selectedCategory = "All";
+
+    private record CheatCard(string Category, string Title, string Description, string Snippet);
+
+    private List<CheatCard> cards = new()
+    {
+        // --- REVIT API COLLECTORS ---
+        new CheatCard(
+            "Collectors",
+            "Collect All Placed Family Instances in View",
+            "Filter to family instances located in the active view, avoiding types.",
+            @"var instances = new FilteredElementCollector(doc, doc.ActiveView.Id)
+    .OfClass(typeof(FamilyInstance))
+    .WhereElementIsNotElementType()
+    .Cast<FamilyInstance>()
+    .ToList();"),
+
+        new CheatCard(
+            "Collectors",
+            "Fast Category & Class QuickFilter",
+            "Native C++ quick filtering for doors.",
+            @"var doors = new FilteredElementCollector(doc)
+    .OfCategory(BuiltInCategory.OST_Doors)
+    .WhereElementIsNotElementType()
+    .ToElements();"),
+
+        new CheatCard(
+            "Collectors",
+            "Fast Spatial Intersect BoundingBox Filter",
+            "Filters elements intersecting a 3D bounding box without iterating full DB.",
+            @"Outline outline = new Outline(minPoint, maxPoint);
+var filter = new BoundingBoxIntersectsFilter(outline);
+var elementsInside = new FilteredElementCollector(doc)
+    .WherePasses(filter)
+    .WhereElementIsNotElementType()
+    .ToElements();"),
+
+        // --- REVIT UNITS & MATH ---
+        new CheatCard(
+            "Units & Math",
+            "Millimeters to Revit Feet (Internal)",
+            "Converts metric length to Revit's internal decimal feet.",
+            @"// Convert 350 mm to Revit internal feet:
+double internalFeet = UnitUtils.ConvertToInternalUnits(350.0, UnitTypeId.Millimeters);"),
+
+        new CheatCard(
+            "Units & Math",
+            "Internal Feet to Millimeters",
+            "Converts internal length to metric millimeters for UI display.",
+            @"double feet = param.AsDouble();
+double mm = UnitUtils.ConvertFromInternalUnits(feet, UnitTypeId.Millimeters);"),
+
+        new CheatCard(
+            "Units & Math",
+            "Degrees to Radians Conversion",
+            "Converts rotational angle degrees to Revit radians.",
+            @"double radians = angleInDegrees * (Math.PI / 180.0);"),
+
+        // --- REVIT GEOMETRY ---
+        new CheatCard(
+            "Geometry",
+            "Calculate Vector Cross Product (Normal)",
+            "Computes orthogonal normal vector to two vectors.",
+            @"XYZ vectorA = new XYZ(1, 0, 0);
+XYZ vectorB = new XYZ(0, 1, 0);
+XYZ normalZ = vectorA.CrossProduct(vectorB).Normalize(); // Yields (0, 0, 1)"),
+
+        new CheatCard(
+            "Geometry",
+            "Distance Between Two XYZ Points",
+            "Computes Euclidean 3D distance between points.",
+            @"XYZ pt1 = new XYZ(0, 0, 0);
+XYZ pt2 = new XYZ(10, 10, 0);
+double distanceFeet = pt1.DistanceTo(pt2);"),
+
+        new CheatCard(
+            "Geometry",
+            "Transform Point by Coordinate System Matrix",
+            "Multiplies an XYZ coordinate by a Revit Transform.",
+            @"Transform transform = linkInstance.GetTotalTransform();
+XYZ worldPoint = transform.OfPoint(localPoint);
+XYZ worldVector = transform.OfVector(localVector);"),
+
+        // --- REVIT TRANSACTIONS ---
+        new CheatCard(
+            "Transactions",
+            "Safe Transaction Pattern with Using",
+            "Ensures rollback on unexpected exceptions.",
+            @"using (Transaction trans = new Transaction(doc, ""Update Model""))
+{
+    trans.Start();
+    // modify elements...
+    trans.Commit();
+}"),
+
+        new CheatCard(
+            "Transactions",
+            "TransactionGroup with Assimilate()",
+            "Collapses multiple sub-transactions into a single Undo entry in Revit.",
+            @"using (TransactionGroup tg = new TransactionGroup(doc, ""Batch Multi-Step""))
+{
+    tg.Start();
+    // execute Transaction 1...
+    // execute Transaction 2...
+    tg.Assimilate(); // Single undo step for user
+}"),
+
+        new CheatCard(
+            "Transactions",
+            "Suppressing Warning Popups",
+            "Automatic warning resolution with IFailuresPreprocessor.",
+            @"public class WarningSwallower : IFailuresPreprocessor
+{
+    public FailureProcessingResult PreprocessFailures(FailuresAccessor failuresAccessor)
+    {
+        failuresAccessor.DeleteAllWarnings();
+        return FailureProcessingResult.Continue;
+    }
+}"),
+
+        // --- REVIT MODELESS & EVENTS ---
+        new CheatCard(
+            "Modeless & Events",
+            "IExternalEventHandler Template",
+            "Safe asynchronous communication from modeless WPF window to Revit main thread.",
+            @"public class CustomHandler : IExternalEventHandler
+{
+    public string Payload { get; set; }
+
+    public void Execute(UIApplication uiapp)
+    {
+        Document doc = uiapp.ActiveUIDocument.Document;
+        using var tx = new Transaction(doc, ""Modeless Action"");
+        tx.Start();
+        // apply payload changes...
+        tx.Commit();
+    }
+
+    public string GetName() => ""CustomModelessHandler"";
+}"),
+
+        // --- C# LINQ ---
+        new CheatCard(
+            "C# LINQ",
+            "OfType<T>() and Where Filtering",
+            "Filters collections to a specific subclass and applies criteria.",
+            @"var exteriorWalls = elements
+    .OfType<Wall>()
+    .Where(w => w.WallType.Function == WallFunction.Exterior)
+    .OrderBy(w => w.Name)
+    .ToList();"),
+
+        new CheatCard(
+            "C# LINQ",
+            "GroupBy and ToDictionary",
+            "Groups elements by Level and creates a lookup dictionary.",
+            @"Dictionary<ElementId, List<FamilyInstance>> instancesByLevel = instances
+    .GroupBy(i => i.LevelId)
+    .ToDictionary(g => g.Key, g => g.ToList());"),
+
+        // --- C# MODERN PATTERNS ---
+        new CheatCard(
+            "C# Modern Patterns",
+            "Positional Records with Non-Destructive Mutation",
+            "Immutable data carrier with value equality and 'with' cloning.",
+            @"public record BimElementDto(int Id, string Category, double Volume);
+
+var original = new BimElementDto(1024, ""Walls"", 42.5);
+var updated = original with { Volume = 45.0 }; // Non-destructive copy!"),
+
+        new CheatCard(
+            "C# Modern Patterns",
+            "Property Pattern Matching & Switch Expression",
+            "Pattern matching on Revit element properties without nested if/else.",
+            @"public string GetCategoryType(Element element) => element switch
+{
+    Wall { WallType.Kind: WallKind.Curtain } => ""Curtain Wall"",
+    Wall => ""Standard Wall"",
+    FamilyInstance { StructuralType: StructuralType.Column } => ""Structural Column"",
+    _ => ""Other Element""
+};"),
+
+        // --- C# ASYNC & TASKS ---
+        new CheatCard(
+            "C# Async & Tasks",
+            "Async Cloud I/O without Freezing Revit UI",
+            "Fetches external REST data on worker thread, then raises ExternalEvent for Revit thread.",
+            @"public async Task SyncProjectDataAsync(ExternalEvent revitEvent, CustomHandler handler)
+{
+    using var http = new HttpClient();
+    var json = await http.GetStringAsync(""https://bim.api.com/specs"");
+    handler.Payload = json;
+    revitEvent.Raise(); // Marshals back to Revit main thread safely!
+}"),
+
+        // --- C# GENERICS ---
+        new CheatCard(
+            "C# Generics",
+            "Generic Revit Element Collector Method",
+            "Reusable generic query with type constraint.",
+            @"public static List<T> CollectElements<T>(Document doc) where T : Element
+{
+    return new FilteredElementCollector(doc)
+        .OfClass(typeof(T))
+        .WhereElementIsNotElementType()
+        .Cast<T>()
+        .ToList();
+}")
+    };
+
+    private IEnumerable<CheatCard> GetFilteredCards()
+    {
+        return cards.Where(c =>
+            (selectedCategory == "All" || c.Category == selectedCategory) &&
+            (string.IsNullOrWhiteSpace(searchFilter) ||
+             c.Title.Contains(searchFilter, StringComparison.OrdinalIgnoreCase) ||
+             c.Description.Contains(searchFilter, StringComparison.OrdinalIgnoreCase) ||
+             c.Snippet.Contains(searchFilter, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task CopySnippet(string code, string btnId)
+    {
+        await JS.InvokeVoidAsync("clipboardHelper.copyText", code, btnId);
+    }
+}

@@ -1,0 +1,257 @@
+@inject CurriculumService Curriculum
+@inject ProgressService Progress
+@inject AuthService Auth
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<div class="app-sidebar @(IsMobileOpen ? "open" : "")">
+    <div class="sidebar-header">
+        <a href="" class="d-flex align-items-center gap-2 text-decoration-none">
+            <div class="brand-icon">
+                <i class="bi bi-box"></i>
+            </div>
+            <div>
+                <div class="brand-title">REVIT & C# STUDIO</div>
+                <div style="font-size: 0.7rem; font-family: var(--font-mono); color: var(--accent-cyan); letter-spacing: 0.05em;">BIM DEVELOPER IDE</div>
+            </div>
+        </a>
+        <span class="brand-badge">2025.3</span>
+    </div>
+
+    <!-- Revit Project Browser Status Strip -->
+    <div class="px-3 py-1 d-flex align-items-center justify-content-between" style="background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-tertiary); letter-spacing: 0.05em;">
+        <span><i class="bi bi-diagram-3 text-cyan me-1"></i> PROJECT BROWSER</span>
+        <span class="text-success"><i class="bi bi-check-circle-fill me-1" style="font-size: 0.55rem;"></i>SYNCHRONIZED</span>
+    </div>
+
+    <!-- Dual Track Switcher -->
+    <div class="sidebar-track-toggle">
+        <button class="track-btn csharp @(ActiveTrackId == "csharp" ? "active" : "")" @onclick='() => SetTrack("csharp")'>
+            <i class="bi bi-filetype-cs"></i>
+            <span>C# Track</span>
+        </button>
+        <button class="track-btn revit @(ActiveTrackId == "revitapi" ? "active" : "")" @onclick='() => SetTrack("revitapi")'>
+            <i class="bi bi-boxes"></i>
+            <span>Revit API</span>
+        </button>
+    </div>
+
+    <!-- Quick Navigation to Tools -->
+    <div style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.2rem;">
+        <a href="syllabus" class="topic-link @(IsActivePage("syllabus") ? "active" : "")">
+            <span><i class="bi bi-list-check text-cyan me-2"></i>98-Topic Syllabus</span>
+            <span class="badge bg-info text-dark" style="font-size:0.65rem;">MATRIX</span>
+        </a>
+        <a href="sandbox" class="topic-link @(IsActivePage("sandbox") ? "active" : "")">
+            <span><i class="bi bi-play-circle-fill text-warning me-2"></i>Revit Query Sandbox</span>
+            <span class="badge bg-dark text-cyan" style="font-size:0.65rem;">LAB</span>
+        </a>
+        <a href="manifest-tool" class="topic-link @(IsActivePage("manifest-tool") ? "active" : "")">
+            <span><i class="bi bi-file-earmark-code text-info me-2"></i>.addin Generator</span>
+        </a>
+        <a href="boilerplate-tool" class="topic-link @(IsActivePage("boilerplate-tool") ? "active" : "")">
+            <span><i class="bi bi-folder-symlink text-primary me-2"></i>Add-in Scaffolder</span>
+            <span class="badge bg-primary text-white" style="font-size:0.62rem;">ZIP</span>
+        </a>
+        <a href="cheatsheet" class="topic-link @(IsActivePage("cheatsheet") ? "active" : "")">
+            <span><i class="bi bi-bookmark-star text-success me-2"></i>API Cheat Sheet</span>
+        </a>
+        <a href="certificate" class="topic-link @(IsActivePage("certificate") ? "active" : "")">
+            <span><i class="bi bi-award-fill text-warning me-2"></i>Certificate</span>
+            <span class="badge bg-warning text-dark" style="font-size:0.65rem;">PRO</span>
+        </a>
+        <a href="support" class="topic-link @(IsActivePage("support") ? "active" : "")">
+            <span><i class="bi bi-headset text-info me-2"></i>Developer Support</span>
+            <span class="badge bg-dark text-info border border-info" style="font-size:0.62rem;">HELP</span>
+        </a>
+        @if (Auth.IsAuthenticated)
+        {
+            <a href="account" class="topic-link @(IsActivePage("account") ? "active" : "")">
+                <span><i class="bi bi-person-gear text-cyan me-2"></i>My Account</span>
+                <span class="badge bg-dark text-cyan" style="font-size:0.62rem;">PROFILE</span>
+            </a>
+        }
+        @if (Auth.IsAdmin)
+        {
+            <a href="admin" class="topic-link @(IsActivePage("admin") ? "active" : "")" style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3);">
+                <span><i class="bi bi-shield-lock-fill text-purple me-2"></i>Admin Console</span>
+                <span class="badge bg-purple text-white" style="font-size:0.62rem;">ADMIN</span>
+            </a>
+        }
+    </div>
+
+    <!-- Track Curriculum Tree Grouped by Progressive Levels -->
+    <div class="sidebar-nav">
+        @{
+            var track = Curriculum.GetTrack(ActiveTrackId);
+            var tiers = Curriculum.GetTrackTiers(ActiveTrackId);
+            if (track != null)
+            {
+                <div class="nav-section-title d-flex justify-content-between align-items-center">
+                    <span>@track.Title</span>
+                    <span style="font-size: 0.65rem; color: var(--accent-cyan);">@GetTrackProgress(track)%</span>
+                </div>
+
+                <!-- Stage Quick Filter -->
+                <div class="px-2 pb-2 d-flex gap-1" style="border-bottom: 1px solid var(--border-color);">
+                    <button class="btn btn-sm py-0 px-2 @(selectedStageFilter == 0 ? "btn-info text-dark fw-bold" : "btn-outline-secondary")" style="font-size:0.68rem;" @onclick="() => selectedStageFilter = 0">All</button>
+                    <button class="btn btn-sm py-0 px-1 @(selectedStageFilter == 1 ? "btn-success text-dark fw-bold" : "btn-outline-secondary")" style="font-size:0.68rem;" @onclick="() => selectedStageFilter = 1">S1: Basics</button>
+                    <button class="btn btn-sm py-0 px-1 @(selectedStageFilter == 2 ? "btn-info text-dark fw-bold" : "btn-outline-secondary")" style="font-size:0.68rem;" @onclick="() => selectedStageFilter = 2">S2: Interm</button>
+                    <button class="btn btn-sm py-0 px-1 @(selectedStageFilter == 3 ? "btn-purple text-white fw-bold" : "btn-outline-secondary")" style="font-size:0.68rem;" @onclick="() => selectedStageFilter = 3">S3: Adv</button>
+                    <button class="btn btn-sm py-0 px-1 @(selectedStageFilter == 4 ? "btn-warning text-dark fw-bold" : "btn-outline-secondary")" style="font-size:0.68rem;" @onclick="() => selectedStageFilter = 4">S4: Expert</button>
+                </div>
+
+                @foreach (var tier in tiers)
+                {
+                    if (selectedStageFilter > 0 && tier.StageNumber != selectedStageFilter)
+                        continue;
+
+                    <div class="px-2 pt-2 pb-1 mt-2 d-flex justify-content-between align-items-center" style="background: rgba(0,0,0,0.2); border-radius: 4px;">
+                        <span class="badge-pill @tier.BadgeClass" style="font-size:0.65rem;">
+                            <i class="bi @tier.Icon me-1"></i>STAGE @tier.StageNumber
+                        </span>
+                        <span class="text-secondary text-truncate ms-2" style="font-size: 0.68rem; font-weight: 600;">
+                            @(tier.Title.Contains(':') ? tier.Title.Split(':')[1].Trim() : tier.Title)
+                        </span>
+                    </div>
+
+                    @foreach (var module in tier.Modules)
+                    {
+                        var isExpanded = ExpandedModules.Contains(module.Id);
+                        <div class="module-group">
+                            <button class="module-header-btn" @onclick="() => ToggleModule(module.Id)">
+                                <div class="module-title-wrapper d-flex align-items-center gap-2 overflow-hidden">
+                                    <span class="badge @(module.TrackId == "csharp" ? "bg-purple text-white" : "bg-dark text-cyan border border-secondary")" style="font-size: 0.65rem; padding: 2px 6px;">@module.ModuleCode</span>
+                                    <span title="@module.Title" class="text-truncate">@module.Title</span>
+                                </div>
+                                <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right")" style="font-size: 0.75rem; color: var(--text-tertiary);"></i>
+                            </button>
+
+                            @if (isExpanded)
+                            {
+                                <div class="topic-list">
+                                    @foreach (var topic in module.Topics)
+                                    {
+                                        var isCompleted = Progress.IsTopicCompleted(topic.Id);
+                                        var isTopicActive = CurrentTopicId == topic.Id;
+                                        <a href="topic/@topic.Id" class="topic-link @(isTopicActive ? "active" : "") @(isCompleted ? "completed" : "")">
+                                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                @if (!Auth.IsAuthenticated)
+                                                {
+                                                    <i class="bi bi-lock-fill text-secondary opacity-75" style="font-size: 0.72rem;" title="Sign In to Access Lesson"></i>
+                                                }
+                                                else if (isCompleted)
+                                                {
+                                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 0.8rem;"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-circle text-muted" style="font-size: 0.75rem;"></i>
+                                                }
+                                                <span class="text-truncate" title="@topic.Title">@topic.Title</span>
+                                            </div>
+                                            <span style="font-size: 0.7rem; color: var(--text-tertiary);">@topic.ReadTimeMinutes m</span>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsMobileOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsMobileOpenChanged { get; set; }
+
+    private string ActiveTrackId = "revitapi";
+    private string? CurrentTopicId;
+    private HashSet<string> ExpandedModules = new();
+    private int selectedStageFilter = 0; // 0 = All, 1 = Basics, 2 = Interm, 3 = Adv, 4 = Expert
+
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+        Auth.OnAuthStateChanged += StateHasChanged;
+        NavManager.LocationChanged += OnLocationChanged;
+        UpdateCurrentFromUrl(NavManager.Uri);
+
+        // Auto-expand first 2 modules by default
+        var track = Curriculum.GetTrack(ActiveTrackId);
+        if (track != null)
+        {
+            foreach (var m in track.Modules.Take(2))
+            {
+                ExpandedModules.Add(m.Id);
+            }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateCurrentFromUrl(e.Location);
+        StateHasChanged();
+    }
+
+    private void UpdateCurrentFromUrl(string uri)
+    {
+        var relative = NavManager.ToBaseRelativePath(uri);
+        if (relative.StartsWith("topic/", StringComparison.OrdinalIgnoreCase))
+        {
+            CurrentTopicId = relative.Substring("topic/".Length).Split('?')[0];
+            var topic = Curriculum.GetTopic(CurrentTopicId);
+            if (topic != null)
+            {
+                ActiveTrackId = topic.TrackId;
+                ExpandedModules.Add(topic.ModuleId);
+            }
+        }
+        else
+        {
+            CurrentTopicId = null;
+        }
+    }
+
+    private bool IsActivePage(string pageSlug)
+    {
+        var relative = NavManager.ToBaseRelativePath(NavManager.Uri);
+        return relative.StartsWith(pageSlug, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void SetTrack(string trackId)
+    {
+        ActiveTrackId = trackId;
+        Progress.SetActiveTrack(trackId);
+        var track = Curriculum.GetTrack(trackId);
+        if (track != null && track.Modules.Any())
+        {
+            ExpandedModules.Add(track.Modules.First().Id);
+        }
+    }
+
+    private void ToggleModule(string moduleId)
+    {
+        if (ExpandedModules.Contains(moduleId))
+            ExpandedModules.Remove(moduleId);
+        else
+            ExpandedModules.Add(moduleId);
+    }
+
+    private int GetTrackProgress(LearningTrack track)
+    {
+        var total = track.Modules.SelectMany(m => m.Topics).Count();
+        if (total == 0) return 0;
+        var completed = track.Modules.SelectMany(m => m.Topics).Count(t => Progress.IsTopicCompleted(t.Id));
+        return (int)Math.Round((double)completed / total * 100);
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+        Auth.OnAuthStateChanged -= StateHasChanged;
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}

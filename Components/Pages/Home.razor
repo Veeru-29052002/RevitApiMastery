@@ -1,0 +1,453 @@
+@page "/"
+@inject CurriculumService Curriculum
+@inject ProgressService Progress
+@inject NavigationManager NavManager
+
+<div class="mb-5">
+    <!-- CAD Architectural Hero Workstation -->
+    <div class="cad-card cad-bracket p-4 p-md-5 mb-5 position-relative overflow-hidden">
+        <!-- Top CAD Drafting Meta Header -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-4 border-bottom" style="border-color: rgba(0, 240, 255, 0.15) !important;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="cad-drawing-tag">
+                    <span>DWG-SPEC:</span>
+                    <strong>ISO-19650 BIM ARCHITECTURE</strong>
+                </span>
+                <span class="cad-drawing-tag d-none d-sm-inline-flex">
+                    <span>STATUS:</span>
+                    <strong class="text-success">PRODUCTION READY</strong>
+                </span>
+            </div>
+            <div class="font-monospace text-secondary small d-none d-md-flex align-items-center gap-3" style="font-size: 0.72rem;">
+                <span>GRID: <strong>1000mm</strong></span>
+                <span>COORD: <strong>WCS(0,0,0)</strong></span>
+                <span class="text-cyan">REV: <strong>2025.3-LOD350</strong></span>
+            </div>
+        </div>
+
+        <div class="row align-items-center g-4">
+            <div class="col-xl-7 col-lg-6">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge-pill badge-intermediate"><i class="bi bi-shield-check"></i> Zero to Advanced Hero</span>
+                    <span class="badge-pill badge-advanced"><i class="bi bi-cpu"></i> .NET 8 / 10 & Revit 2025 Ready</span>
+                </div>
+                <h1 class="display-4 fw-bold mb-3 text-white" style="letter-spacing: -0.03em; line-height: 1.15;">
+                    Autodesk Revit API & Modern C# <br />
+                    <span style="background: linear-gradient(135deg, var(--accent-cyan) 0%, #38bdf8 50%, var(--accent-purple) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        BIM Engineering Studio
+                    </span>
+                </h1>
+                <p class="lead text-secondary mb-4" style="font-size: 1.1rem; max-width: 660px; line-height: 1.7;">
+                    The industrial-grade developer academy designed exclusively for architects, structural engineers, and BIM developers. Master C# from syntax primitives to MVVM architecture, and engineer high-performance Revit add-ins using FilteredElementCollectors, Transactions, and Modeless Events.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="syllabus" class="btn-primary-glow">
+                        <i class="bi bi-list-check fs-5"></i>
+                        <span>98-Topic Syllabus Matrix</span>
+                    </a>
+                    <a href="topic/c-l1-01" class="btn-outline-glow">
+                        <i class="bi bi-filetype-cs fs-5"></i>
+                        <span>Start C# Stage 1</span>
+                    </a>
+                    <a href="topic/r-l1-01" class="btn-outline-glow">
+                        <i class="bi bi-boxes fs-5"></i>
+                        <span>Start Revit API Stage 3</span>
+                    </a>
+                    <a href="sandbox" class="btn-outline-glow" style="border-color: var(--accent-amber); color: var(--accent-amber);">
+                        <i class="bi bi-terminal fs-5"></i>
+                        <span>Query Sandbox</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bespoke 3D Isometric BIM Wireframe Building Model -->
+            <div class="col-xl-5 col-lg-6">
+                <div class="bim-model-stage">
+                    <!-- Top Stage Telemetry -->
+                    <div class="position-absolute top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center" style="z-index: 15; background: linear-gradient(180deg, rgba(6,10,18,0.9) 0%, transparent 100%);">
+                        <span class="font-monospace text-cyan" style="font-size: 0.68rem; letter-spacing: 0.08em;">
+                            <i class="bi bi-bounding-box-circles me-1"></i>3D ISOMETRIC BIM MODEL [LOD 350]
+                        </span>
+                        <span class="badge bg-dark border border-info text-info font-monospace" style="font-size: 0.62rem;">
+                            LIVE SCAN
+                        </span>
+                    </div>
+
+                    <!-- Animated LiDAR Sweep Beam -->
+                    <div class="lidar-scan-beam"></div>
+
+                    <!-- Interactive BIM Element Floating Pins -->
+                    <div class="bim-element-chip" style="top: 24%; left: 8%;">
+                        <i class="bi bi-layers-fill text-info me-1"></i>Wall: Curtain_Storefront [#49201]
+                    </div>
+                    <div class="bim-element-chip" style="top: 52%; right: 6%; border-color: rgba(168,85,247,0.5); color: #c084fc;">
+                        <i class="bi bi-grid-3x3 text-purple me-1"></i>FamilyInstance: W12x26 [#49202]
+                    </div>
+                    <div class="bim-element-chip" style="bottom: 18%; left: 14%; border-color: rgba(0,255,157,0.5); color: #4ade80;">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>Transaction.Commit() [ACID]
+                    </div>
+
+                    <!-- Isometric Building SVG Wireframe Graphic -->
+                    <svg viewBox="0 0 440 340" style="width: 100%; height: 100%; max-height: 360px;" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="isoGridGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.7"/>
+                                <stop offset="100%" stop-color="#7928CA" stop-opacity="0.3"/>
+                            </linearGradient>
+                            <linearGradient id="slabGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.3"/>
+                                <stop offset="50%" stop-color="#0078D4" stop-opacity="0.1"/>
+                                <stop offset="100%" stop-color="#A855F7" stop-opacity="0.25"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Ground Workplane Base Grid -->
+                        <g opacity="0.35">
+                            <line x1="220" y1="290" x2="60" y2="200" stroke="#00F0FF" stroke-dasharray="3,3" stroke-width="1" />
+                            <line x1="220" y1="290" x2="380" y2="200" stroke="#00F0FF" stroke-dasharray="3,3" stroke-width="1" />
+                            <line x1="60" y1="200" x2="220" y2="110" stroke="#00F0FF" stroke-dasharray="3,3" stroke-width="1" />
+                            <line x1="380" y1="200" x2="220" y2="110" stroke="#00F0FF" stroke-dasharray="3,3" stroke-width="1" />
+                        </g>
+
+                        <!-- Vertical Columns & Core Structural Lines -->
+                        <!-- Column Left -->
+                        <line x1="120" y1="70" x2="120" y2="250" stroke="#00F0FF" stroke-width="1.5" opacity="0.5" />
+                        <!-- Column Right -->
+                        <line x1="320" y1="70" x2="320" y2="250" stroke="#00F0FF" stroke-width="1.5" opacity="0.5" />
+                        <!-- Central Spine -->
+                        <line x1="220" y1="20" x2="220" y2="280" stroke="#A855F7" stroke-width="2" stroke-dasharray="4,2" opacity="0.7" />
+                        <!-- Rear Column -->
+                        <line x1="220" y1="40" x2="220" y2="180" stroke="#00F0FF" stroke-width="1" opacity="0.3" />
+
+                        <!-- LEVEL 01: Foundation Slab (Y = 240) -->
+                        <g transform="translate(0, 40)">
+                            <polygon points="220,240 320,185 220,130 120,185" fill="url(#slabGlow)" stroke="#00F0FF" stroke-width="1.5" opacity="0.9" />
+                            <line x1="220" y1="240" x2="220" y2="250" stroke="#00F0FF" stroke-width="1.5" />
+                            <line x1="320" y1="185" x2="320" y2="195" stroke="#00F0FF" stroke-width="1.5" />
+                            <line x1="120" y1="185" x2="120" y2="195" stroke="#00F0FF" stroke-width="1.5" />
+                            <polygon points="220,250 320,195 320,185 220,240" fill="#0052CC" opacity="0.4" />
+                            <polygon points="220,250 120,195 120,185 220,240" fill="#0A2540" opacity="0.5" />
+                        </g>
+
+                        <!-- LEVEL 02: Framing Slab (Y = 190) -->
+                        <g transform="translate(0, -15)">
+                            <polygon points="220,240 320,185 220,130 120,185" fill="url(#slabGlow)" stroke="#00F0FF" stroke-width="1.5" opacity="0.85" />
+                            <!-- Floor Internal Beam Grid -->
+                            <line x1="170" y1="212" x2="270" y2="157" stroke="#A855F7" stroke-width="1" opacity="0.6" />
+                            <line x1="170" y1="157" x2="270" y2="212" stroke="#A855F7" stroke-width="1" opacity="0.6" />
+                        </g>
+
+                        <!-- LEVEL 03: Facade & Office Slab (Y = 140) -->
+                        <g transform="translate(0, -70)">
+                            <polygon points="220,240 320,185 220,130 120,185" fill="url(#slabGlow)" stroke="#00F0FF" stroke-width="1.8" opacity="0.9" />
+                            <!-- Curtain Wall Mullion Verticals -->
+                            <line x1="145" y1="200" x2="145" y2="245" stroke="#00F0FF" stroke-width="1" opacity="0.5" />
+                            <line x1="195" y1="228" x2="195" y2="272" stroke="#00F0FF" stroke-width="1" opacity="0.5" />
+                            <line x1="245" y1="228" x2="245" y2="272" stroke="#00F0FF" stroke-width="1" opacity="0.5" />
+                            <line x1="295" y1="200" x2="295" y2="245" stroke="#00F0FF" stroke-width="1" opacity="0.5" />
+                        </g>
+
+                        <!-- LEVEL 04: Roof Plant & Equipment (Y = 90) -->
+                        <g transform="translate(0, -125)">
+                            <polygon points="220,240 320,185 220,130 120,185" fill="url(#slabGlow)" stroke="#00FF9D" stroke-width="2" opacity="0.95" />
+                            <!-- HVAC / Plant Mechanical Block -->
+                            <polygon points="220,215 260,192 220,170 180,192" fill="#0B1A2D" stroke="#00FF9D" stroke-width="1" />
+                            <line x1="220" y1="215" x2="220" y2="200" stroke="#00FF9D" stroke-width="1" />
+                            <line x1="260" y1="192" x2="260" y2="177" stroke="#00FF9D" stroke-width="1" />
+                            <line x1="180" y1="192" x2="180" y2="177" stroke="#00FF9D" stroke-width="1" />
+                        </g>
+
+                        <!-- Coordinate Origin Crosshair Marker (0,0,0) -->
+                        <circle cx="220" cy="280" r="5" fill="#00F0FF" />
+                        <circle cx="220" cy="280" r="10" stroke="#00F0FF" stroke-width="1" opacity="0.5" fill="none" />
+                        <text x="235" y="285" fill="#00F0FF" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold">UCS (0,0,0)</text>
+                    </svg>
+
+                    <!-- Bottom Status Bar -->
+                    <div class="position-absolute bottom-0 start-0 end-0 p-2 px-3 d-flex justify-content-between align-items-center" style="background: rgba(6,10,18,0.92); border-top: 1px solid rgba(0,240,255,0.15); z-index: 15;">
+                        <span class="font-monospace text-secondary" style="font-size: 0.65rem;">
+                            <span class="text-success">&bull;</span> LIVE DB: 1,482 ELEMENTS
+                        </span>
+                        <span class="font-monospace text-cyan" style="font-size: 0.65rem;">
+                            FILTERED COLLECTOR ACTIVE
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academy Engineering Schedule (Stats Matrix) -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-3">
+            <div class="cad-card p-3 text-start">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-monospace text-tertiary" style="font-size: 0.65rem;">SCHEDULE: MOD-01</span>
+                    <i class="bi bi-layout-split text-cyan"></i>
+                </div>
+                <div class="fs-2 fw-bold text-cyan mb-0" style="font-family: var(--font-heading);">20</div>
+                <div class="text-secondary small fw-bold text-uppercase">Dual-Track Modules</div>
+                <div class="text-muted mt-1 font-monospace" style="font-size: 0.72rem;">10 C# (C1-C10) + 10 Revit (R1-R10)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cad-card p-3 text-start" style="border-top-color: var(--accent-purple);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-monospace text-tertiary" style="font-size: 0.65rem;">SCHEDULE: TOP-02</span>
+                    <i class="bi bi-journal-code text-purple"></i>
+                </div>
+                <div class="fs-2 fw-bold text-purple mb-0" style="font-family: var(--font-heading);">98</div>
+                <div class="text-secondary small fw-bold text-uppercase">Deep-Dive Topics</div>
+                <div class="text-muted mt-1 font-monospace" style="font-size: 0.72rem;">Theory, Code, Pitfalls & Quizzes</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cad-card p-3 text-start" style="border-top-color: var(--accent-green);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-monospace text-tertiary" style="font-size: 0.65rem;">SCHEDULE: ARCH-03</span>
+                    <i class="bi bi-cpu text-success"></i>
+                </div>
+                <div class="fs-2 fw-bold text-success mb-0" style="font-family: var(--font-heading);">100%</div>
+                <div class="text-secondary small fw-bold text-uppercase">Pure C# Native Stack</div>
+                <div class="text-muted mt-1 font-monospace" style="font-size: 0.72rem;">Engineered with .NET 10 Blazor</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cad-card p-3 text-start" style="border-top-color: var(--accent-amber);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="font-monospace text-tertiary" style="font-size: 0.65rem;">SCHEDULE: TOOL-04</span>
+                    <i class="bi bi-tools text-warning"></i>
+                </div>
+                <div class="fs-2 fw-bold text-warning mb-0" style="font-family: var(--font-heading);">4</div>
+                <div class="text-secondary small fw-bold text-uppercase">Interactive Tools</div>
+                <div class="text-muted mt-1 font-monospace" style="font-size: 0.72rem;">Sandbox, Scaffolder, Manifest, Sheet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4-Stage Progressive Roadmap Workplane -->
+    <div class="cad-card cad-bracket p-4 p-md-5 mb-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <span class="badge-pill badge-beginner mb-2"><i class="bi bi-mortarboard-fill"></i> Architectural Roadmap</span>
+                <h2 class="h3 fw-bold text-white mb-1">From Syntax Foundations to Enterprise BIM Architecture</h2>
+                <p class="text-secondary small mb-0">Every module is strictly mapped across distinct mastery stages so your progression is clear and structured.</p>
+            </div>
+            <div class="d-flex gap-2 mt-3 mt-md-0">
+                <button class="btn btn-sm @(selectedRoadmapTrack == "revitapi" ? "btn-primary-glow" : "btn-outline-glow")" @onclick='() => selectedRoadmapTrack = "revitapi"'>
+                    <i class="bi bi-boxes me-1"></i> Revit API Track (R1-R10)
+                </button>
+                <button class="btn btn-sm @(selectedRoadmapTrack == "csharp" ? "btn-primary-glow" : "btn-outline-glow")" @onclick='() => selectedRoadmapTrack = "csharp"'>
+                    <i class="bi bi-filetype-cs me-1"></i> C# Track (C1-C10)
+                </button>
+            </div>
+        </div>
+
+        <!-- Interactive Module Grid for Selected Track -->
+        <div class="row g-3">
+            @{
+                var trackModules = Curriculum.GetTrack(selectedRoadmapTrack)?.Modules ?? new List<Module>();
+                foreach (var mod in trackModules)
+                {
+                    <div class="col-lg-4 col-md-6">
+                        <div class="cad-card p-3 h-100 d-flex flex-column" style="border-left: 3px solid @(mod.TrackId == "csharp" ? "var(--accent-purple)" : "var(--accent-cyan)"); background: rgba(8, 14, 25, 0.75);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge @(mod.TrackId == "csharp" ? "bg-purple text-white" : "bg-dark text-cyan border border-secondary") font-monospace" style="font-size: 0.72rem; font-weight: 700;">
+                                    @mod.ModuleCode
+                                </span>
+                                <span class="badge bg-dark border border-secondary text-secondary font-monospace" style="font-size: 0.65rem;">
+                                    @mod.Topics.Count Topics
+                                </span>
+                            </div>
+
+                            <h3 class="h6 fw-bold text-white mb-1 text-truncate" title="@mod.Title">@mod.Title</h3>
+                            <p class="text-secondary small mb-3 flex-grow-1" style="font-size: 0.78rem;">@mod.ShortDescription</p>
+
+                            @if (mod.Topics.Any())
+                            {
+                                var firstTopic = mod.Topics.First();
+                                <a href="topic/@firstTopic.Id" class="btn btn-outline-glow btn-sm w-100 py-1" style="font-size: 0.75rem;">
+                                    <span>Start @mod.ModuleCode: @firstTopic.Title</span>
+                                    <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Dual Learning Tracks Section -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <span class="cad-drawing-tag mb-1">
+                <span>CURRICULUM SPEC:</span>
+                <strong>DUAL-TRACK PIPELINE</strong>
+            </span>
+            <h2 class="h3 fw-bold text-white mb-0">Dual Learning Specializations</h2>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Track 1: C# Language -->
+        <div class="col-lg-6">
+            <div class="cad-card cad-bracket h-100 d-flex flex-column" style="border-left: 4px solid var(--accent-purple); border-top-color: var(--accent-purple);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-3 rounded" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);">
+                            <i class="bi bi-filetype-cs fs-2"></i>
+                        </div>
+                        <div>
+                            <h3 class="h4 fw-bold text-white mb-0">Modern C# Track</h3>
+                            <div class="text-secondary small font-monospace">STAGE 1 (Syntax) &rarr; STAGE 2 (Advanced OOP)</div>
+                        </div>
+                    </div>
+                    <span class="badge-pill badge-advanced font-monospace">41 Topics</span>
+                </div>
+
+                <p class="text-secondary mb-4 flex-grow-1" style="font-size: 0.88rem; line-height: 1.7;">
+                    Master modern C# from raw scratch to enterprise architecture across <strong>C# Stage 1</strong> (28 topics: types, loops, collections, LINQ) and <strong>C# Stage 2 (Advanced)</strong> (13 topics: OOP, interfaces, static members, and exception handling).
+                </p>
+
+                <div class="mb-4">
+                    <div class="text-white small fw-bold mb-2 font-monospace" style="font-size: 0.72rem; letter-spacing: 0.08em;">CURRICULUM HIGHLIGHTS:</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Visual Studio & Tools</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Data Types & Control Flow</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Lists & LINQ Queries</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">OOP & Interfaces</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Robust Exception Handling</span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted small font-monospace">STAGE 1 &rarr; STAGE 2</span>
+                    <a href="topic/c-l1-01" class="btn-outline-glow" style="border-color: var(--accent-purple); color: #c084fc;">
+                        <span>Launch C# Track</span>
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track 2: Revit API -->
+        <div class="col-lg-6">
+            <div class="cad-card cad-bracket h-100 d-flex flex-column" style="border-left: 4px solid var(--accent-cyan); border-top-color: var(--accent-cyan);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-3 rounded" style="background: rgba(0, 235, 255, 0.15); color: var(--accent-cyan);">
+                            <i class="bi bi-boxes fs-2"></i>
+                        </div>
+                        <div>
+                            <h3 class="h4 fw-bold text-white mb-0">Revit API C# Track</h3>
+                            <div class="text-secondary small font-monospace">STAGE 3 (API Core) &rarr; STAGE 4 (Master UI & MVVM)</div>
+                        </div>
+                    </div>
+                    <span class="badge-pill badge-intermediate font-monospace">51 Topics</span>
+                </div>
+
+                <p class="text-secondary mb-4 flex-grow-1" style="font-size: 0.88rem; line-height: 1.7;">
+                    Master Revit development from core API fundamentals in <strong>Revit API Stage 3</strong> (20 topics: Transactions, Collectors, Geometry & Creation) to modern UI in <strong>Revit API Stage 4 (Master)</strong> (31 topics: WPF controls, Styles, MVVM pattern, Model Navigator & Room Wizard).
+                </p>
+
+                <div class="mb-4">
+                    <div class="text-white small fw-bold mb-2 font-monospace" style="font-size: 0.72rem; letter-spacing: 0.08em;">CURRICULUM HIGHLIGHTS:</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">FilteredElementCollector</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Transactions & ACID</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">XYZ Geometry & Solids</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">WPF UI & MVVM Architecture</span>
+                        <span class="badge bg-dark border border-secondary text-light font-monospace" style="font-size: 0.72rem;">Model Navigator & Room Wizard</span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: rgba(255,255,255,0.08) !important;">
+                    <span class="text-muted small font-monospace">STAGE 3 &rarr; STAGE 4</span>
+                    <a href="topic/r-l1-01" class="btn-outline-glow">
+                        <span>Launch Revit Track</span>
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Tools Callout -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <span class="cad-drawing-tag mb-1">
+                <span>ENGINEERING TOOLKIT:</span>
+                <strong>PRODUCTIVITY UTILITIES</strong>
+            </span>
+            <h2 class="h3 fw-bold text-white mb-0">BIM Developer Supertools</h2>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="cad-card h-100">
+                <div class="text-warning fs-3 mb-2"><i class="bi bi-play-circle"></i></div>
+                <h4 class="h5 fw-bold text-white mb-2">Revit Query Sandbox</h4>
+                <p class="text-secondary small mb-3">
+                    Test FilteredElementCollector queries and inspect parameters against an in-memory virtual Revit model without needing Revit installed!
+                </p>
+                <a href="sandbox" class="text-cyan small fw-bold">Launch Sandbox &rarr;</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="cad-card h-100">
+                <div class="text-info fs-3 mb-2"><i class="bi bi-file-earmark-code"></i></div>
+                <h4 class="h5 fw-bold text-white mb-2">.addin Manifest Generator</h4>
+                <p class="text-secondary small mb-3">
+                    Create valid Autodesk Revit add-in XML manifests with automated GUID generation, assembly paths, and vendor metadata.
+                </p>
+                <a href="manifest-tool" class="text-cyan small fw-bold">Build Manifest &rarr;</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="cad-card h-100">
+                <div class="text-primary fs-3 mb-2"><i class="bi bi-box-seam"></i></div>
+                <h4 class="h5 fw-bold text-white mb-2">Add-in Project Scaffolder</h4>
+                <p class="text-secondary small mb-3">
+                    Generate ready-to-compile Visual Studio solutions targeting Revit 2024 (.NET Framework 4.8) or Revit 2025+ (.NET 8).
+                </p>
+                <a href="boilerplate-tool" class="text-cyan small fw-bold">Scaffold Project &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academy Support & Portal Access Banner -->
+    <div class="cad-card cad-bracket p-4 p-md-5 mt-5 position-relative overflow-hidden">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-pill badge-intermediate"><i class="bi bi-headset"></i> Dedicated Helpdesk</span>
+                    <span class="badge-pill badge-advanced"><i class="bi bi-shield-lock"></i> Dual Portals</span>
+                </div>
+                <h3 class="h4 fw-bold text-white mb-2">BIM Developer Support & Dual-Role Portals</h3>
+                <p class="text-secondary small mb-0">
+                    Get answers to tricky Revit API exceptions, threading deadlocks, and WPF bindings. Access customized portals designed for <strong>Student Developers</strong> and <strong>Academy Administrators</strong>.
+                </p>
+            </div>
+            <div class="col-lg-5 text-lg-end">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+                    <a href="support" class="btn-primary-glow">
+                        <i class="bi bi-chat-left-dots me-1"></i>
+                        <span>Open Support Desk</span>
+                    </a>
+                    <a href="login" class="btn-outline-glow">
+                        <i class="bi bi-person-badge me-1"></i>
+                        <span>User & Admin Login</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string selectedRoadmapTrack = "revitapi";
+}

@@ -1,0 +1,198 @@
+@page "/certificate"
+@inject ProgressService Progress
+@inject CurriculumService Curriculum
+@inject AuthService Auth
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Certificate of Mastery | Revit & C# Academy</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="row justify-content-center my-5">
+        <div class="col-lg-7">
+            <div class="cad-card cad-bracket p-5 text-center">
+                <div class="brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.8rem; background: rgba(245, 158, 11, 0.2); color: var(--accent-amber);">
+                    <i class="bi bi-award-fill"></i>
+                </div>
+                <h1 class="h3 fw-bold text-white mb-2">Certificate Issuance Requires Authentication</h1>
+                <p class="text-secondary small mb-4">
+                    Official diploma credentials can only be verified and issued for authenticated student and administrator profiles. Please sign in to access your certificate.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="login?returnUrl=certificate" class="btn-primary-glow">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Claim Certificate
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+<div class="mb-5 no-print">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-pill badge-expert"><i class="bi bi-award-fill"></i> Industry Credential</span>
+    </div>
+    <h1 class="h2 fw-bold text-white mb-2">Official Certificate of Engineering Mastery</h1>
+    <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+        Validate your expertise across modern C# and the Autodesk Revit API. Customize your credential details below and print or save your verified diploma.
+    </p>
+
+    <!-- Customization Form -->
+    <div class="card-glass p-4 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold">Recipient Full Name</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="recipientName" placeholder="Your Name or Engineer Title" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold">Company / BIM Organization (Optional)</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="organization" placeholder="e.g. Architectural Engineering Labs" />
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary-glow flex-grow-1" @onclick="PrintCertificate">
+                        <i class="bi bi-printer-fill me-1"></i> Print / Save as PDF
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="GenerateNewId">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Printable Certificate Layout -->
+<div class="certificate-container p-4 p-md-5 my-4 position-relative overflow-hidden text-center text-light" 
+     style="background: radial-gradient(circle at 50% 10%, rgba(0, 235, 255, 0.08) 0%, rgba(8, 12, 21, 0.95) 75%), #080c15; border: 4px double rgba(245, 158, 11, 0.4); border-radius: 12px; box-shadow: 0 0 50px rgba(0, 235, 255, 0.15);">
+    
+    <!-- Corner Decorative Accents -->
+    <div class="position-absolute top-0 start-0 p-3 text-warning opacity-50"><i class="bi bi-flower1 fs-2"></i></div>
+    <div class="position-absolute top-0 end-0 p-3 text-warning opacity-50"><i class="bi bi-flower1 fs-2"></i></div>
+    <div class="position-absolute bottom-0 start-0 p-3 text-warning opacity-50"><i class="bi bi-flower1 fs-2"></i></div>
+    <div class="position-absolute bottom-0 end-0 p-3 text-warning opacity-50"><i class="bi bi-flower1 fs-2"></i></div>
+
+    <!-- Academy Header -->
+    <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+        <div class="p-2 rounded bg-black border border-secondary text-cyan">
+            <i class="bi bi-cpu-fill fs-3"></i>
+        </div>
+        <div class="text-start">
+            <div class="fw-bold tracking-wide text-uppercase" style="letter-spacing: 0.15em; font-size: 0.85rem; color: var(--accent-cyan);">Autodesk Revit API & C# Master Academy</div>
+            <div class="small text-secondary" style="font-size: 0.72rem;">Advanced BIM Software Engineering Credential</div>
+        </div>
+    </div>
+
+    <div class="text-uppercase my-3 tracking-widest text-warning fw-semibold" style="letter-spacing: 0.25em; font-size: 0.9rem;">
+        &mdash; CERTIFICATE OF MASTERY &mdash;
+    </div>
+
+    <p class="text-secondary small mb-2">THIS INDUSTRIAL CREDENTIAL IS PROUDLY CONFERRED UPON</p>
+    
+    <h2 class="display-5 fw-bold text-white mb-2" style="font-family: serif; letter-spacing: 0.02em; border-bottom: 2px solid rgba(245, 158, 11, 0.3); display: inline-block; padding: 0 2rem 0.5rem;">
+        @recipientName
+    </h2>
+
+    @if (!string.IsNullOrWhiteSpace(organization))
+    {
+        <div class="text-cyan small fw-semibold mb-3">@organization</div>
+    }
+
+    <p class="lead text-light text-opacity-75 mx-auto mb-4" style="max-width: 760px; font-size: 1rem; line-height: 1.7;">
+        For successfully mastering the comprehensive dual-track curriculum spanning <strong>20 Technical Modules</strong>, 
+        demonstrating advanced proficiency in <strong>Modern C# Language Architecture</strong> (Memory, LINQ, Async/Await, MVVM, and DI Patterns) 
+        and the <strong>Autodesk Revit C# API</strong> (ACID Transactions, FilteredElementCollectors, 3D Solids, Family Creation, Modeless Dialogs & DMU).
+    </p>
+
+    <!-- Badges Row -->
+    <div class="d-flex justify-content-center flex-wrap gap-3 my-4">
+        <span class="badge bg-black border border-secondary text-cyan px-3 py-2 small">
+            <i class="bi bi-filetype-cs text-purple me-1"></i>Track 1: C# Modules C1–C10
+        </span>
+        <span class="badge bg-black border border-secondary text-cyan px-3 py-2 small">
+            <i class="bi bi-boxes text-cyan me-1"></i>Track 2: Revit API Modules R1–R10
+        </span>
+        <span class="badge bg-black border border-secondary text-cyan px-3 py-2 small">
+            <i class="bi bi-check-all text-success me-1"></i>98 Deep-Dive Topics Verified
+        </span>
+    </div>
+
+    <!-- Signatures & Verification -->
+    <div class="row align-items-end mt-5 pt-4 border-top border-secondary border-opacity-25">
+        <div class="col-4 text-start">
+            <div class="small font-monospace text-secondary" style="font-size: 0.72rem;">Issue Date: <strong>@issueDate</strong></div>
+            <div class="small font-monospace text-secondary" style="font-size: 0.72rem;">Credential ID: <strong class="text-cyan">@credentialId</strong></div>
+        </div>
+
+        <div class="col-4 text-center">
+            <div class="d-inline-block rounded-circle p-3 border border-warning" style="background: rgba(245, 158, 11, 0.1);">
+                <i class="bi bi-patch-check-fill text-warning fs-1"></i>
+            </div>
+            <div class="small text-warning fw-bold mt-1 text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.1em;">Official Verified Seal</div>
+        </div>
+
+        <div class="col-4 text-end">
+            <div class="fw-bold font-monospace text-light" style="font-family: cursive; font-size: 1.1rem;">DeepMind / BIM Academy Board</div>
+            <div class="small text-secondary" style="font-size: 0.72rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2px;">Lead Curriculum Instructor</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        body {
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .no-print, .app-sidebar, header, nav {
+            display: none !important;
+        }
+        .certificate-container {
+            border: 4px solid #333 !important;
+            background: #fff !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 2rem !important;
+        }
+        .certificate-container * {
+            color: #111 !important;
+        }
+    }
+</style>
+}
+
+@code {
+    private string recipientName = "Senior BIM Engineer";
+    private string organization = "Advanced BIM Automation Group";
+    private string issueDate = DateTime.UtcNow.ToString("MMMM dd, yyyy");
+    private string credentialId = "REVIT-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant();
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += StateHasChanged;
+        if (Auth.CurrentUser != null)
+        {
+            recipientName = Auth.CurrentUser.FullName;
+            organization = Auth.CurrentUser.Organization;
+        }
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+    }
+
+    private void GenerateNewId()
+    {
+        credentialId = "REVIT-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant();
+    }
+
+    private async Task PrintCertificate()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+}

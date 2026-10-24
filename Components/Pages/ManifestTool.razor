@@ -1,0 +1,148 @@
+@page "/manifest-tool"
+@inject IJSRuntime JS
+
+<div class="mb-5">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-pill badge-beginner"><i class="bi bi-file-earmark-code"></i> Developer Automation</span>
+    </div>
+    <h1 class="h2 fw-bold text-white mb-2">Autodesk Revit .addin Manifest Generator</h1>
+    <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+        Generate standardized, valid XML manifest files required by Autodesk Revit to load your external commands and ribbon applications.
+    </p>
+
+    <div class="row g-4">
+        <!-- Configuration Form -->
+        <div class="col-lg-6">
+            <div class="card-glass p-4">
+                <h3 class="h5 fw-bold text-white mb-3"><i class="bi bi-gear-wide-connected text-cyan me-2"></i>Add-in Configuration</h3>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Plugin Type</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="addinType" id="typeCommand" value="Command" 
+                                   checked="@(config.AddinType == "Command")" 
+                                   @onchange='() => config.AddinType = "Command"' />
+                            <label class="form-check-label text-white" for="typeCommand">
+                                <strong>External Command</strong> (IExternalCommand)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="addinType" id="typeApp" value="Application" 
+                                   checked="@(config.AddinType == "Application")" 
+                                   @onchange='() => config.AddinType = "Application"' />
+                            <label class="form-check-label text-white" for="typeApp">
+                                <strong>External Application</strong> (IExternalApplication)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Add-in Display Name</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="config.AddinName" placeholder="My Revit Automation Tool" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Assembly Path (.dll)</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" @bind="config.AssemblyPath" placeholder="C:\MyPlugins\MyPlugin.dll" />
+                    <div class="text-muted small mt-1">Can be absolute path or relative path to the .addin file.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Full Class Name (Namespace.ClassName)</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" @bind="config.FullClassName" placeholder="MyPluginNamespace.MyCommand" />
+                    <div class="text-muted small mt-1">Must match exact case and namespace in your C# code.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">AddInId (Unique GUID)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-cyan border-secondary font-monospace" @bind="config.AddinId" />
+                        <button class="btn btn-outline-info" @onclick="GenerateNewGuid" title="Generate New GUID">
+                            <i class="bi bi-arrow-clockwise me-1"></i>New GUID
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-bold">Vendor ID (3-4 characters)</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary font-monospace" @bind="config.VendorId" placeholder="ADSK" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-bold">Vendor Description</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" @bind="config.VendorDescription" placeholder="Company Name or URL" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Tool Description</label>
+                    <textarea class="form-control bg-dark text-white border-secondary" rows="2" @bind="config.Description"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated XML & Instructions -->
+        <div class="col-lg-6">
+            <div class="card-glass p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h3 class="h5 fw-bold text-white mb-0"><i class="bi bi-file-code text-cyan me-2"></i>Generated .addin XML</h3>
+                    <button id="btnCopyManifest" class="btn-primary-glow py-1 px-3" style="font-size:0.8rem;" @onclick="CopyManifest">
+                        <i class="bi bi-clipboard"></i>
+                        <span>Copy XML</span>
+                    </button>
+                </div>
+
+                <div class="code-box my-3">
+                    <pre class="code-content" style="max-height: 380px;"><code>@GenerateXml()</code></pre>
+                </div>
+
+                <div class="p-3 bg-black bg-opacity-30 rounded small text-secondary">
+                    <div class="text-white fw-bold mb-1"><i class="bi bi-folder-fill text-warning me-1"></i>Where to place this file on Windows:</div>
+                    <ul class="mb-0 ps-3">
+                        <li class="mb-1"><strong>Current User Only:</strong><br /><code class="text-cyan">%APPDATA%\Autodesk\Revit\Addins\2025\</code></li>
+                        <li><strong>All Machine Users:</strong><br /><code class="text-cyan">%PROGRAMDATA%\Autodesk\Revit\Addins\2025\</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ManifestConfig config = new();
+
+    private void GenerateNewGuid()
+    {
+        config.AddinId = Guid.NewGuid().ToString().ToUpper();
+    }
+
+    private string GenerateXml()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        sb.AppendLine("<RevitAddIns>");
+        sb.AppendLine($"  <AddIn Type=\"{config.AddinType}\">");
+        sb.AppendLine($"    <Name>{System.Security.SecurityElement.Escape(config.AddinName)}</Name>");
+        sb.AppendLine($"    <Assembly>{System.Security.SecurityElement.Escape(config.AssemblyPath)}</Assembly>");
+        sb.AppendLine($"    <FullClassName>{System.Security.SecurityElement.Escape(config.FullClassName)}</FullClassName>");
+        sb.AppendLine($"    <ClientId>{config.AddinId}</ClientId>");
+        sb.AppendLine($"    <VendorId>{System.Security.SecurityElement.Escape(config.VendorId)}</VendorId>");
+        sb.AppendLine($"    <VendorDescription>{System.Security.SecurityElement.Escape(config.VendorDescription)}</VendorDescription>");
+        sb.AppendLine($"    <Description>{System.Security.SecurityElement.Escape(config.Description)}</Description>");
+        if (config.AddinType == "Command")
+        {
+            sb.AppendLine("    <VisibilityMode>AlwaysVisible</VisibilityMode>");
+            sb.AppendLine("    <Discipline>Any</Discipline>");
+        }
+        sb.AppendLine("  </AddIn>");
+        sb.AppendLine("</RevitAddIns>");
+        return sb.ToString();
+    }
+
+    private async Task CopyManifest()
+    {
+        await JS.InvokeVoidAsync("clipboardHelper.copyText", GenerateXml(), "btnCopyManifest");
+    }
+}

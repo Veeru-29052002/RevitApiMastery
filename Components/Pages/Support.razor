@@ -1,0 +1,616 @@
+@page "/support"
+@inject SupportService SupportSvc
+@inject AuthService Auth
+@inject CurriculumService Curriculum
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<PageTitle>Developer Support & Helpdesk | Revit & C# Academy</PageTitle>
+
+<div class="mb-5">
+    <!-- Top Support Banner -->
+    <div class="cad-card cad-bracket p-4 p-md-5 mb-4 position-relative overflow-hidden">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-3 border-bottom" style="border-color: rgba(0, 240, 255, 0.15) !important;">
+            <span class="cad-drawing-tag">
+                <span>SYSTEM DESK:</span>
+                <strong>BIM ARCHITECTURAL HELPDESK</strong>
+            </span>
+            <span class="font-monospace text-secondary small d-none d-sm-inline">SLA: 2-HOUR CERTIFIED TURNAROUND</span>
+        </div>
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-pill badge-intermediate"><i class="bi bi-headset"></i> Certified Engineers</span>
+                    <span class="badge-pill badge-beginner"><i class="bi bi-clock-history"></i> Priority Queue</span>
+                    @if (Auth.IsAdmin)
+                    {
+                        <span class="badge bg-purple text-white px-2 py-1"><i class="bi bi-shield-lock me-1"></i>ADMIN CONSOLE ACTIVE</span>
+                    }
+                    else if (Auth.IsUser)
+                    {
+                        <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-person-check me-1"></i>STUDENT: @Auth.CurrentUser?.FullName</span>
+                    }
+                </div>
+                <h1 class="h2 fw-bold text-white mb-1">Developer Support & Technical Helpdesk</h1>
+                <p class="lead text-secondary mb-0" style="font-size: 0.95rem;">
+                    Stuck on a Revit API exception, C# threading bug, or WPF binding issue? Get direct technical assistance from certified Autodesk BIM architects and instructors.
+                </p>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn @(activeTab == "new" ? "btn-primary-glow" : "btn-outline-glow")" @onclick='() => SwitchTab("new")'>
+                    <i class="bi bi-plus-circle me-1"></i>
+                    <span>Submit Question</span>
+                </button>
+                @if (!Auth.IsAuthenticated)
+                {
+                    <a href="login" class="btn btn-outline-glow btn-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Sign In</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Support Navigation Tabs -->
+    <div class="d-flex gap-2 mb-4 border-bottom border-secondary pb-2" style="border-color: var(--border-color) !important;">
+        <button class="btn @(activeTab == "tickets" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => SwitchTab("tickets")'>
+            <i class="bi bi-chat-left-text me-1"></i> Active Support Queue (@SupportSvc.GetTickets().Count)
+        </button>
+        <button class="btn @(activeTab == "new" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => SwitchTab("new")'>
+            <i class="bi bi-pencil-square me-1"></i> Open New Ticket
+        </button>
+        <button class="btn @(activeTab == "faq" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" @onclick='() => SwitchTab("faq")'>
+            <i class="bi bi-question-circle me-1"></i> BIM Knowledgebase & FAQ (@SupportSvc.GetFaqs().Count)
+        </button>
+    </div>
+
+    <!-- TAB 1: TICKETS QUEUE -->
+    @if (activeTab == "tickets")
+    {
+        <div class="row g-4">
+            <!-- Left Column: Tickets List -->
+            <div class="col-lg-5">
+                <div class="card-glass p-3 mb-3">
+                    <!-- Filters -->
+                    <div class="d-flex gap-2 mb-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                   placeholder="Search tickets by keywords..." 
+                                   @bind="ticketSearchFilter" @bind:event="oninput" />
+                        </div>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white" style="width: 140px;" @bind="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="Open">Open</option>
+                            <option value="InProgress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+
+                    <!-- Ticket List Items -->
+                    <div class="d-flex flex-column gap-2" style="max-height: 650px; overflow-y: auto;">
+                        @{
+                            var filteredTickets = GetFilteredTickets();
+                            if (!filteredTickets.Any())
+                            {
+                                <div class="p-4 text-center text-muted small">
+                                    <i class="bi bi-inbox fs-3 mb-2 d-block"></i>
+                                    No tickets found matching the selected filter.
+                                </div>
+                            }
+                            else
+                            {
+                                foreach (var t in filteredTickets)
+                                {
+                                    var isSelected = selectedTicketId == t.Id;
+                                    <div class="p-3 rounded" 
+                                         style="cursor: pointer; background: @(isSelected ? "rgba(14, 165, 233, 0.15)" : "rgba(8, 12, 21, 0.7)"); border: 1px solid @(isSelected ? "var(--accent-cyan)" : "var(--border-color)"); transition: all 0.2s ease;"
+                                         @onclick="() => SelectTicket(t.Id)">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="badge bg-dark border border-secondary text-cyan font-monospace" style="font-size:0.68rem;">@t.Id</span>
+                                            <span class="badge @GetStatusBadgeClass(t.Status)" style="font-size:0.68rem;">@t.Status</span>
+                                        </div>
+                                        <div class="fw-bold text-white small mb-1 text-truncate" title="@t.Title">@t.Title</div>
+                                        <div class="text-secondary small mb-2 text-truncate" style="font-size:0.75rem;">@t.Description</div>
+                                        <div class="d-flex justify-content-between align-items-center text-muted" style="font-size:0.7rem;">
+                                            <span><i class="bi bi-person me-1"></i>@t.AuthorName</span>
+                                            <span><i class="bi bi-chat me-1"></i>@t.Messages.Count replies</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Ticket Conversation & Admin Tools -->
+            <div class="col-lg-7">
+                @{
+                    var activeTicket = SupportSvc.GetTicketById(selectedTicketId ?? "");
+                    if (activeTicket == null)
+                    {
+                        <div class="card-glass p-5 text-center">
+                            <i class="bi bi-chat-square-text text-secondary fs-1 mb-3 d-block"></i>
+                            <h3 class="h5 text-white mb-2">Select a Support Ticket</h3>
+                            <p class="text-secondary small">Click on any ticket in the left queue to view details, inspect code, and read replies.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card-glass p-4">
+                            <!-- Ticket Header -->
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3 pb-3 border-bottom border-secondary" style="border-color: var(--border-color) !important;">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="badge bg-dark border border-cyan text-cyan font-monospace">@activeTicket.Id</span>
+                                        <span class="badge @GetPriorityBadgeClass(activeTicket.Priority)">@activeTicket.Priority Priority</span>
+                                        <span class="badge @GetStatusBadgeClass(activeTicket.Status)">@activeTicket.Status</span>
+                                    </div>
+                                    <h2 class="h4 fw-bold text-white mb-1">@activeTicket.Title</h2>
+                                    <div class="text-secondary small">
+                                        Submitted by <strong class="text-white">@activeTicket.AuthorName</strong> &bull; @activeTicket.CreatedAt.ToString("MMM dd, yyyy HH:mm") UTC
+                                        @if (!string.IsNullOrEmpty(activeTicket.ModuleReference))
+                                        {
+                                            <span> &bull; <i class="bi bi-folder me-1 text-cyan"></i>@activeTicket.ModuleReference</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Admin Status Modifier Toolbar -->
+                                @if (Auth.IsAdmin)
+                                {
+                                    <div class="p-2 rounded bg-black bg-opacity-40 border border-purple text-end">
+                                        <div class="text-purple small fw-bold mb-1" style="font-size:0.7rem;"><i class="bi bi-shield-check me-1"></i>ADMIN STATUS CONTROL</div>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-warning btn-xs @(activeTicket.Status == TicketStatus.Open ? "active fw-bold" : "")" 
+                                                    @onclick="() => ChangeStatus(activeTicket.Id, TicketStatus.Open)">Open</button>
+                                            <button class="btn btn-outline-info btn-xs @(activeTicket.Status == TicketStatus.InProgress ? "active fw-bold" : "")" 
+                                                    @onclick="() => ChangeStatus(activeTicket.Id, TicketStatus.InProgress)">In Progress</button>
+                                            <button class="btn btn-outline-success btn-xs @(activeTicket.Status == TicketStatus.Resolved ? "active fw-bold" : "")" 
+                                                    @onclick="() => ChangeStatus(activeTicket.Id, TicketStatus.Resolved)">Resolved</button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Ticket Description & Code -->
+                            <div class="mb-4">
+                                <h4 class="h6 text-cyan fw-bold text-uppercase mb-2" style="font-size:0.75rem; letter-spacing:0.05em;">Issue Details</h4>
+                                <p class="text-secondary small" style="white-space: pre-wrap; line-height: 1.6;">@activeTicket.Description</p>
+
+                                @if (!string.IsNullOrEmpty(activeTicket.ErrorMessage))
+                                {
+                                    <div class="p-3 rounded mb-3 bg-danger bg-opacity-10 border border-danger">
+                                        <div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Runtime Exception / Error Stack:</div>
+                                        <code class="text-danger font-monospace small" style="font-size:0.78rem;">@activeTicket.ErrorMessage</code>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(activeTicket.CodeSnippet))
+                                {
+                                    <div class="mt-3">
+                                        <div class="text-secondary small fw-bold mb-1"><i class="bi bi-code-slash me-1"></i>User's Provided Code:</div>
+                                        <pre class="p-3 rounded font-monospace small mb-0" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #67e8f9; font-size:0.78rem; overflow-x: auto;"><code>@activeTicket.CodeSnippet</code></pre>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Conversation Thread -->
+                            <div class="mb-4">
+                                <h4 class="h6 text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class="bi bi-chat-dots-fill text-info"></i>
+                                    <span>Conversation History (@activeTicket.Messages.Count)</span>
+                                </h4>
+
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach (var msg in activeTicket.Messages)
+                                    {
+                                        var isAdminMsg = msg.SenderRole == UserRole.Admin;
+                                        <div class="p-3 rounded" style="background: @(isAdminMsg ? "rgba(168, 85, 247, 0.08)" : "rgba(15, 23, 42, 0.6)"); border: 1px solid @(isAdminMsg ? "rgba(168, 85, 247, 0.3)" : "var(--border-color)"); border-left: 4px solid @(isAdminMsg ? "var(--accent-purple)" : "var(--accent-cyan)");">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="fw-bold small text-white">@msg.SenderName</span>
+                                                    @if (isAdminMsg)
+                                                    {
+                                                        <span class="badge bg-purple text-white" style="font-size:0.65rem;">
+                                                            <i class="bi bi-patch-check-fill me-1"></i>ACADEMY INSTRUCTOR
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <span class="text-muted" style="font-size:0.7rem;">@msg.SentAt.ToString("MMM dd, yyyy HH:mm")</span>
+                                            </div>
+                                            <p class="text-secondary small mb-2" style="white-space: pre-wrap; line-height: 1.5;">@msg.MessageText</p>
+                                            @if (!string.IsNullOrEmpty(msg.CodeSnippet))
+                                            {
+                                                <pre class="p-2 rounded font-monospace small mb-0" style="background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: #a7f3d0; font-size:0.75rem; overflow-x: auto;"><code>@msg.CodeSnippet</code></pre>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Reply Composer Form -->
+                            <div class="p-3 rounded bg-black bg-opacity-25" style="border: 1px solid var(--border-color);">
+                                <h5 class="small text-white fw-bold mb-2">
+                                    <i class="bi bi-reply-fill text-cyan me-1"></i> Post a Reply as @(Auth.CurrentUser?.FullName ?? "Guest User")
+                                </h5>
+
+                                <div class="mb-2">
+                                    <textarea class="form-control bg-dark border-secondary text-white small" 
+                                              rows="3" 
+                                              placeholder="Type your response or technical advice..." 
+                                              @bind="replyText"></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <button class="btn btn-xs btn-link text-secondary p-0 text-decoration-none" @onclick="() => showReplyCodeBox = !showReplyCodeBox">
+                                        <i class="bi @(showReplyCodeBox ? "bi-chevron-up" : "bi-code") me-1"></i>
+                                        <span>@(showReplyCodeBox ? "Hide Code Snippet" : "+ Add C# Code Snippet")</span>
+                                    </button>
+                                    @if (showReplyCodeBox)
+                                    {
+                                        <textarea class="form-control font-monospace bg-dark border-secondary text-info small mt-2" 
+                                                  rows="3" 
+                                                  placeholder="// Paste formatted C# code here..." 
+                                                  @bind="replyCodeSnippet"></textarea>
+                                    }
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-muted small" style="font-size:0.7rem;">
+                                        @(Auth.IsAdmin ? "Posting with certified Instructor credentials." : "Posting to support ticket thread.")
+                                    </div>
+                                    <button class="btn-primary-glow btn-sm" @onclick="() => SubmitReply(activeTicket.Id)" disabled="@string.IsNullOrWhiteSpace(replyText)">
+                                        <i class="bi bi-send-fill me-1"></i> Send Reply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    <!-- TAB 2: SUBMIT NEW TICKET -->
+    @if (activeTab == "new")
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card-glass p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom border-secondary" style="border-color: var(--border-color) !important;">
+                        <div class="p-3 rounded" style="background: rgba(14, 165, 233, 0.15); color: var(--accent-cyan); font-size: 1.5rem;">
+                            <i class="bi bi-question-diamond-fill"></i>
+                        </div>
+                        <div>
+                            <h2 class="h4 fw-bold text-white mb-1">Open a Technical Support Ticket</h2>
+                            <p class="text-secondary small mb-0">Describe the coding hurdle or Revit API exception in detail for our engineering team.</p>
+                        </div>
+                    </div>
+
+                    @if (ticketSubmittedSuccess)
+                    {
+                        <div class="p-4 rounded text-center mb-4" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald);">
+                            <i class="bi bi-check-circle-fill text-success fs-2 mb-2 d-block"></i>
+                            <h3 class="h5 text-white fw-bold mb-1">Ticket Submitted Successfully!</h3>
+                            <p class="text-secondary small mb-3">Your inquiry has been placed into the priority support queue. An instructor will review your code shortly.</p>
+                            <button class="btn-primary-glow" @onclick='() => SwitchTab("tickets")'>
+                                <i class="bi bi-chat-left-text me-1"></i> View Support Queue
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <form @onsubmit="HandleCreateTicket">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Your Full Name</label>
+                                    <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                           @bind="newAuthorName" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Email Address</label>
+                                    <input type="email" class="form-control bg-dark border-secondary text-white" 
+                                           @bind="newAuthorEmail" required />
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Issue Category</label>
+                                    <select class="form-select bg-dark border-secondary text-white" @bind="newCategory">
+                                        <option value="@TicketCategory.RevitApiExceptions">Revit API Exceptions & Crashes</option>
+                                        <option value="@TicketCategory.TransactionsAndDMU">Transactions, SubTransactions & DMU</option>
+                                        <option value="@TicketCategory.WpfAndMvvm">WPF, Dockable Panels & MVVM UI</option>
+                                        <option value="@TicketCategory.CSharpFundamentals">C# Language & LINQ Syntax</option>
+                                        <option value="@TicketCategory.ManifestAndDeployment">.addin Manifests & .NET 8 Migration</option>
+                                        <option value="@TicketCategory.GeneralAcademy">General Academy Inquiries</option>
+                                        <option value="@TicketCategory.AccountAndCredentials">Student Account & Password Recovery</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-bold">Priority Level</label>
+                                    <select class="form-select bg-dark border-secondary text-white" @bind="newPriority">
+                                        <option value="@TicketPriority.Low">Low - Clarification / Best Practice</option>
+                                        <option value="@TicketPriority.Medium">Medium - Stuck on lesson challenge</option>
+                                        <option value="@TicketPriority.High">High - Reproducible code failure</option>
+                                        <option value="@TicketPriority.Urgent">Urgent - Blocking production add-in</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold">Associated Module Reference</label>
+                                <select class="form-select bg-dark border-secondary text-white" @bind="newModuleRef">
+                                    <option value="">General (Not specific to one module)</option>
+                                    @foreach (var mod in Curriculum.GetAllSyllabusModules())
+                                    {
+                                        <option value="@mod.ModuleCode: @mod.Title">@mod.ModuleCode: @mod.Title</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold">Issue Title / Subject</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" 
+                                       placeholder="e.g. InvalidOperationException when calling Transaction.Commit() in modeless window" 
+                                       @bind="newTitle" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold">Detailed Description</label>
+                                <textarea class="form-control bg-dark border-secondary text-white" 
+                                          rows="4" 
+                                          placeholder="Explain what steps you took, expected outcome, and where it failed..." 
+                                          @bind="newDescription" required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold">Exception / Error Message (Optional)</label>
+                                <input type="text" class="form-control font-monospace bg-dark border-secondary text-danger small" 
+                                       placeholder="e.g. Autodesk.Revit.Exceptions.InvalidOperationException: ..." 
+                                       @bind="newErrorMessage" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-secondary small fw-bold">Code Snippet (Optional)</label>
+                                <textarea class="form-control font-monospace bg-dark border-secondary text-info small" 
+                                          rows="4" 
+                                          placeholder="// Paste the problematic C# code snippet here..." 
+                                          @bind="newCodeSnippet"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-outline-secondary" @onclick='() => SwitchTab("tickets")'>Cancel</button>
+                                <button type="submit" class="btn-primary-glow px-4">
+                                    <i class="bi bi-send-check me-1"></i> Submit Support Ticket
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- TAB 3: BIM KNOWLEDGEBASE & FAQ -->
+    @if (activeTab == "faq")
+    {
+        <div class="card-glass p-4 mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <div>
+                    <h2 class="h4 fw-bold text-white mb-1"><i class="bi bi-lightbulb-fill text-warning me-2"></i>BIM Developer Knowledgebase & FAQs</h2>
+                    <p class="text-secondary small mb-0">Verified architectural solutions for the most frequent Revit API & C# questions.</p>
+                </div>
+                <div class="input-group input-group-sm" style="max-width: 320px;">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control bg-dark border-secondary text-white" 
+                           placeholder="Filter FAQs..." 
+                           @bind="faqSearchFilter" @bind:event="oninput" />
+                </div>
+            </div>
+
+            <div class="accordion" id="faqAccordion">
+                @{
+                    var faqs = SupportSvc.GetFaqs();
+                    if (!string.IsNullOrWhiteSpace(faqSearchFilter))
+                    {
+                        var q = faqSearchFilter.Trim().ToLowerInvariant();
+                        faqs = faqs.Where(f => f.Question.ToLowerInvariant().Contains(q) || f.AnswerHtml.ToLowerInvariant().Contains(q) || f.Category.ToLowerInvariant().Contains(q)).ToList();
+                    }
+
+                    int faqIndex = 0;
+                    foreach (var faq in faqs)
+                    {
+                        var currentIdx = faqIndex++;
+                        var collapseId = $"faqCollapse{currentIdx}";
+                        <div class="accordion-item bg-dark border-secondary mb-3 rounded overflow-hidden" style="background: rgba(8, 12, 21, 0.7) !important;">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(currentIdx == 0 ? "" : "collapsed") bg-dark text-white shadow-none" 
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="@(currentIdx == 0 ? "true" : "false")" style="background: rgba(15, 23, 42, 0.8) !important;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-secondary" style="font-size:0.65rem;">@faq.Category</span>
+                                        <span class="fw-bold" style="font-size:0.92rem;">@faq.Question</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="@collapseId" class="accordion-collapse collapse @(currentIdx == 0 ? "show" : "")" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-secondary" style="font-size:0.88rem; line-height: 1.6;">
+                                    <p>@((MarkupString)faq.AnswerHtml)</p>
+                                    @if (!string.IsNullOrEmpty(faq.CodeSample))
+                                    {
+                                        <div class="mt-2">
+                                            <div class="text-white small fw-bold mb-1">Recommended Implementation:</div>
+                                            <pre class="p-3 rounded font-monospace small bg-black bg-opacity-50 text-cyan mb-0" style="border: 1px solid var(--border-color);"><code>@faq.CodeSample</code></pre>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string activeTab = "tickets";
+    private string? selectedTicketId;
+    private string ticketSearchFilter = "";
+    private string statusFilter = "";
+    private string faqSearchFilter = "";
+
+    // Reply Form
+    private string replyText = "";
+    private string replyCodeSnippet = "";
+    private bool showReplyCodeBox = false;
+
+    // New Ticket Form
+    private string newAuthorName = "";
+    private string newAuthorEmail = "";
+    private TicketCategory newCategory = TicketCategory.RevitApiExceptions;
+    private TicketPriority newPriority = TicketPriority.Medium;
+    private string newModuleRef = "";
+    private string newTitle = "";
+    private string newDescription = "";
+    private string newErrorMessage = "";
+    private string newCodeSnippet = "";
+    private bool ticketSubmittedSuccess = false;
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += StateHasChanged;
+        SupportSvc.OnTicketsChanged += StateHasChanged;
+
+        // Default to first ticket
+        var first = SupportSvc.GetTickets().FirstOrDefault();
+        if (first != null) selectedTicketId = first.Id;
+
+        PopulateUserInfo();
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+        SupportSvc.OnTicketsChanged -= StateHasChanged;
+    }
+
+    private void PopulateUserInfo()
+    {
+        if (Auth.IsAuthenticated)
+        {
+            newAuthorName = Auth.CurrentUser?.FullName ?? "";
+            newAuthorEmail = Auth.CurrentUser?.Email ?? "";
+        }
+        else
+        {
+            newAuthorName = "Student Engineer";
+            newAuthorEmail = "engineer@example.com";
+        }
+    }
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        ticketSubmittedSuccess = false;
+        PopulateUserInfo();
+    }
+
+    private void SelectTicket(string id)
+    {
+        selectedTicketId = id;
+        replyText = "";
+        replyCodeSnippet = "";
+        showReplyCodeBox = false;
+    }
+
+    private List<SupportTicket> GetFilteredTickets()
+    {
+        var list = SupportSvc.GetTickets().ToList();
+
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            list = list.Where(t => t.Status.ToString().Equals(statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(ticketSearchFilter))
+        {
+            var q = ticketSearchFilter.Trim().ToLowerInvariant();
+            list = list.Where(t => 
+                t.Title.ToLowerInvariant().Contains(q) ||
+                t.Description.ToLowerInvariant().Contains(q) ||
+                t.AuthorName.ToLowerInvariant().Contains(q) ||
+                t.Id.ToLowerInvariant().Contains(q)).ToList();
+        }
+
+        return list;
+    }
+
+    private void ChangeStatus(string ticketId, TicketStatus status)
+    {
+        SupportSvc.UpdateStatus(ticketId, status);
+    }
+
+    private void SubmitReply(string ticketId)
+    {
+        if (string.IsNullOrWhiteSpace(replyText)) return;
+
+        var senderName = Auth.CurrentUser?.FullName ?? "Guest User";
+        var senderRole = Auth.CurrentUser?.Role ?? UserRole.User;
+        var code = string.IsNullOrWhiteSpace(replyCodeSnippet) ? null : replyCodeSnippet;
+
+        SupportSvc.AddReply(ticketId, replyText, senderName, senderRole, code);
+        replyText = "";
+        replyCodeSnippet = "";
+        showReplyCodeBox = false;
+    }
+
+    private void HandleCreateTicket()
+    {
+        var ticket = new SupportTicket
+        {
+            Title = newTitle,
+            Description = newDescription,
+            ErrorMessage = string.IsNullOrWhiteSpace(newErrorMessage) ? null : newErrorMessage,
+            CodeSnippet = string.IsNullOrWhiteSpace(newCodeSnippet) ? null : newCodeSnippet,
+            Category = newCategory,
+            Priority = newPriority,
+            ModuleReference = string.IsNullOrWhiteSpace(newModuleRef) ? null : newModuleRef,
+            AuthorId = Auth.CurrentUser?.Id ?? Guid.NewGuid().ToString(),
+            AuthorName = string.IsNullOrWhiteSpace(newAuthorName) ? "Anonymous Developer" : newAuthorName,
+            AuthorEmail = string.IsNullOrWhiteSpace(newAuthorEmail) ? "dev@example.com" : newAuthorEmail,
+            AuthorRole = Auth.CurrentUser?.Role ?? UserRole.User
+        };
+
+        var created = SupportSvc.CreateTicket(ticket);
+        selectedTicketId = created.Id;
+        ticketSubmittedSuccess = true;
+
+        // Reset form fields
+        newTitle = "";
+        newDescription = "";
+        newErrorMessage = "";
+        newCodeSnippet = "";
+    }
+
+    private string GetPriorityBadgeClass(TicketPriority priority) => priority switch
+    {
+        TicketPriority.Urgent => "bg-danger text-white",
+        TicketPriority.High => "bg-warning text-dark fw-bold",
+        TicketPriority.Medium => "bg-info text-dark",
+        _ => "bg-secondary text-white"
+    };
+
+    private string GetStatusBadgeClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "bg-warning text-dark fw-bold",
+        TicketStatus.InProgress => "bg-info text-dark fw-bold",
+        TicketStatus.Resolved => "bg-success text-white",
+        _ => "bg-secondary text-white"
+    };
+}

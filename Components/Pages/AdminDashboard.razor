@@ -1,0 +1,830 @@
+@page "/admin"
+@inject AuthService Auth
+@inject SupportService Support
+@inject CurriculumService Curriculum
+@inject EmailService EmailSvc
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<PageTitle>Admin Console & User Enrollment | Revit & C# Academy</PageTitle>
+
+@if (!Auth.IsAuthenticated || !Auth.IsAdmin)
+{
+    <!-- Access Denied Card with Quick Admin Login -->
+    <div class="row justify-content-center my-5">
+        <div class="col-lg-6">
+            <div class="cad-card cad-bracket p-5 text-center" style="border: 2px solid var(--accent-purple); background: radial-gradient(circle at 50% 10%, rgba(168, 85, 247, 0.15) 0%, var(--bg-card) 70%);">
+                <div class="brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.8rem; background: rgba(168, 85, 247, 0.2); color: var(--accent-purple);">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h2 class="h3 fw-bold text-white mb-2">Administrator Access Required</h2>
+                <p class="text-secondary small mb-4">
+                    The Admin Command Center is reserved for authorized instructors and platform administrators. Please sign in with your administrator credentials.
+                </p>
+
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="login" class="btn-primary-glow" style="background: linear-gradient(135deg, #7c3aed, #a855f7) !important;">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Admin Console
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    var stats = Support.GetTicketStats();
+    var registeredUsers = Auth.GetRegisteredUsers();
+
+    <div class="mb-5">
+        <!-- Top Admin Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-purple text-white px-2 py-1"><i class="bi bi-shield-check me-1"></i>ADMIN PRIVILEGES</span>
+                    <span class="badge bg-dark border border-secondary text-secondary">Logged in as @Auth.CurrentUser?.FullName (<code>@Auth.CurrentUser?.Username</code>)</span>
+                </div>
+                <h1 class="h2 fw-bold text-white mb-0">Academy Command & Enrollment Center</h1>
+            </div>
+
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <a href="support" class="btn-primary-glow" style="background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;">
+                    <i class="bi bi-headset me-1"></i> Support Desk (@stats.Open Open)
+                </a>
+                <a href="syllabus" class="btn-outline-glow">
+                    <i class="bi bi-list-check me-1"></i> 98-Topic Matrix
+                </a>
+                <button class="btn btn-outline-danger btn-sm px-3" @onclick="HandleLogout">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card-glass p-3 h-100" style="border-left: 3px solid var(--accent-cyan);">
+                    <div class="text-secondary small fw-bold text-uppercase">Curriculum Size</div>
+                    <div class="fs-2 fw-bold text-cyan">20 Modules</div>
+                    <div class="text-muted small">98 In-Depth Topics & Quizzes</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-glass p-3 h-100" style="border-left: 3px solid var(--accent-purple);">
+                    <div class="text-secondary small fw-bold text-uppercase">Enrolled Users</div>
+                    <div class="fs-2 fw-bold text-purple">@registeredUsers.Count Accounts</div>
+                    <div class="text-muted small">Active BIM Developers & Admins</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-glass p-3 h-100" style="border-left: 3px solid var(--accent-emerald);">
+                    <div class="text-secondary small fw-bold text-uppercase">Automated Emails</div>
+                    <div class="fs-2 fw-bold text-success">@EmailSvc.GetOutbox().Count Sent</div>
+                    <div class="text-muted small text-truncate" title="Admin: @EmailSvc.AdminEmail">Target: @EmailSvc.AdminEmail</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-glass p-3 h-100" style="border-left: 3px solid var(--accent-amber);">
+                    <div class="text-secondary small fw-bold text-uppercase">Support Queue</div>
+                    <div class="fs-2 fw-bold text-warning">@stats.Open Open</div>
+                    <div class="text-muted small">@stats.Resolved resolved &bull; @stats.Total total</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENROLL NEW USER SECTION -->
+        <div class="cad-card cad-bracket p-4 mb-4" style="border: 1px solid var(--accent-purple); background: radial-gradient(circle at 95% 10%, rgba(168, 85, 247, 0.12) 0%, var(--bg-card) 70%);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="h5 fw-bold text-white mb-0">
+                        <i class="bi bi-person-plus-fill text-purple me-2"></i>Enroll New Person & Issue Credentials
+                    </h3>
+                    <p class="text-secondary small mb-0">
+                        As Administrator, enroll any engineer, architect, or instructor into the academy and generate their login credentials.
+                    </p>
+                </div>
+                <span class="badge bg-purple text-white px-2 py-1"><i class="bi bi-shield-lock me-1"></i>ADMIN PRIVILEGE</span>
+            </div>
+
+            @if (enrolledSuccessAccount != null)
+            {
+                var isLive = EmailSvc.IsSmtpConfigured;
+                <div class="p-3 mb-4 rounded bg-success bg-opacity-10 border border-success">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div>
+                            <div class="text-success fw-bold small"><i class="bi bi-check-circle-fill me-1"></i>Account Successfully Enrolled & Credentials Generated!</div>
+                            <div class="text-white small">
+                                <strong>@enrolledSuccessAccount.FullName</strong> enrolled as 
+                                <span class="badge @(enrolledSuccessAccount.Role == UserRole.Admin ? "bg-purple text-white" : "badge-beginner") ms-1">@enrolledSuccessAccount.Role</span>
+                            </div>
+                            <div class="text-secondary small mt-1">
+                                Issued Credentials: <code class="text-cyan">Username: @enrolledSuccessAccount.Username</code> &bull; <code class="text-warning">Password: @enrolledSuccessAccount.Password</code>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-success" @onclick="() => Auth.QuickLoginAsUser(enrolledSuccessAccount.Id)">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Test Login as this User
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => enrolledSuccessAccount = null">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
+                        @if (isLive)
+                        {
+                            <div class="d-inline-flex align-items-center gap-2 px-2 py-1 rounded bg-black bg-opacity-50 border border-success border-opacity-50 text-success" style="font-size:0.8rem;">
+                                <i class="bi bi-send-check-fill text-success"></i>
+                                <span>Credentials dispatched via Live SMTP to: <strong>@enrolledSuccessAccount.Email</strong></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="p-3 rounded bg-dark border border-warning text-warning small">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="fw-bold d-flex align-items-center gap-1">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                        <span>Real Email Delivery is Paused (Google App Password required)</span>
+                                    </div>
+                                    <button class="btn btn-xs btn-outline-warning py-0 px-2" @onclick="() => showInlineSmtp = !showInlineSmtp">
+                                        <i class="bi bi-gear me-1"></i>@(showInlineSmtp ? "Hide Config" : "Configure Live SMTP")
+                                    </button>
+                                </div>
+                                <div class="text-secondary mt-1" style="font-size:0.75rem;">
+                                    The email was generated and stored in the <strong>Outbox below</strong>. Enter your 16-character Google App Password below to immediately dispatch it to <code>@enrolledSuccessAccount.Email</code>:
+                                </div>
+
+                                @if (showInlineSmtp)
+                                {
+                                    <div class="mt-3 p-3 rounded" style="background: rgba(0,0,0,0.6); border: 1px solid var(--accent-cyan);">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label text-cyan small fw-bold mb-0">
+                                                <i class="bi bi-key-fill text-warning me-1"></i>Google App Password (16 characters)
+                                            </label>
+                                            <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-decoration-none text-cyan small" style="font-size:0.72rem;">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>Generate at Google &rarr;
+                                            </a>
+                                        </div>
+                                        <div class="input-group input-group-sm mb-2">
+                                            <input type="password" class="form-control bg-dark border-secondary text-warning font-monospace" 
+                                                   placeholder="xxxx xxxx xxxx xxxx" 
+                                                   @bind="smtpPasswordInput" />
+                                            <button class="btn btn-primary-glow px-3" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4) !important;" @onclick="SaveAndDispatchNow" disabled="@isDispatchingNow">
+                                                @if (isDispatchingNow)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1"></span> <span>Dispatching...</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-send-check me-1"></i> <span>Save & Dispatch Now</span>
+                                                }
+                                            </button>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(inlineSmtpFeedback))
+                                        {
+                                            <div class="alert @(inlineSmtpFeedback.Contains("Success") || inlineSmtpFeedback.Contains("dispatched") ? "alert-success" : "alert-danger") py-1 px-2 small mb-0">
+                                                <i class="bi @(inlineSmtpFeedback.Contains("Success") || inlineSmtpFeedback.Contains("dispatched") ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill") me-1"></i>
+                                                @inlineSmtpFeedback
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(enrollErrorMessage))
+            {
+                <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>@enrollErrorMessage</span>
+                </div>
+            }
+
+            <form @onsubmit="HandleEnrollUser">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small fw-bold">Full Name *</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" 
+                               placeholder="e.g. David Miller, PE" 
+                               @bind="enrollFullName" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small fw-bold">Username or Email *</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" 
+                               placeholder="e.g. david.miller or david@aecom.com" 
+                               @bind="enrollUsername" required />
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-secondary small fw-bold mb-0">Generated Password *</label>
+                            <button type="button" class="btn btn-link text-cyan p-0 text-decoration-none" style="font-size:0.75rem;" @onclick="GenerateRandomPassword">
+                                ⚡ Generate
+                            </button>
+                        </div>
+                        <input type="text" class="form-control font-monospace bg-dark border-secondary text-warning" 
+                               placeholder="e.g. Revit#2026" 
+                               @bind="enrollPassword" required />
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small fw-bold">Account Access Role *</label>
+                        <select class="form-select bg-dark border-secondary text-white" @bind="enrollRole">
+                            <option value="@UserRole.User">Student / Engineer (Full Curriculum & Tools)</option>
+                            <option value="@UserRole.Admin">Administrator (Instructor, Triage & Enrollment)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small fw-bold">Job Title</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" 
+                               placeholder="e.g. Computational BIM Specialist" 
+                               @bind="enrollTitle" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small fw-bold">Company / Organization</label>
+                        <input type="text" class="form-control bg-dark border-secondary text-white" 
+                               placeholder="e.g. Foster & Partners / AECOM" 
+                               @bind="enrollOrganization" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn-primary-glow" style="background: linear-gradient(135deg, #7c3aed, #a855f7) !important;">
+                        <i class="bi bi-person-check-fill me-1"></i>
+                        <span>Enroll Person & Issue Credentials</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ENROLLED USERS ROSTER TABLE -->
+        <div class="card-glass p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="h5 fw-bold text-white mb-0">
+                        <i class="bi bi-people-fill text-cyan me-2"></i>Platform Accounts & Enrolled Roster (@registeredUsers.Count)
+                    </h3>
+                    <p class="text-secondary small mb-0">Complete list of registered students and administrators with issued credentials</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr class="text-secondary small text-uppercase" style="border-bottom: 1px solid var(--border-color);">
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Username / Email</th>
+                            <th>Issued Password</th>
+                            <th>Organization</th>
+                            <th>Enrolled</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in registeredUsers)
+                        {
+                            var isRootAdmin = string.Equals(user.Username, "Veeru@2002", StringComparison.OrdinalIgnoreCase);
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" 
+                                             style="width: 34px; height: 34px; background: @user.AvatarColor; font-size: 0.85rem;">
+                                            @user.FullName.Substring(0, 1)
+                                        </div>
+                                        <div>
+                                            <div class="text-white fw-bold small">@user.FullName</div>
+                                            <div class="text-secondary" style="font-size:0.72rem;">@user.Title</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge @(user.Role == UserRole.Admin ? "bg-purple text-white" : "badge-beginner")" style="font-size:0.72rem;">
+                                        @user.Role
+                                    </span>
+                                </td>
+                                <td>
+                                    <code class="text-cyan small">@user.Username</code>
+                                    <div class="text-muted" style="font-size:0.7rem;">@user.Email</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-black border border-secondary text-warning font-monospace" style="font-size:0.75rem;">
+                                        @user.Password
+                                    </span>
+                                </td>
+                                <td class="small text-secondary">
+                                    @user.Organization
+                                </td>
+                                <td class="small text-muted" style="font-size:0.75rem;">
+                                    @user.EnrolledDate.ToString("MMM dd, yyyy")
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-xs btn-outline-info py-1 px-2" style="font-size:0.72rem;" title="Test Login as this User" @onclick="() => Auth.QuickLoginAsUser(user.Id)">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                                        </button>
+                                        @if (!isRootAdmin)
+                                        {
+                                            <button class="btn btn-xs btn-outline-danger py-1 px-2" style="font-size:0.72rem;" title="Remove User" @onclick="() => HandleDeleteUser(user.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AUTOMATED EMAIL TRANSMISSION & AUDIT LOG -->
+        <div class="card-glass p-4 mb-4" style="border: 1px solid var(--accent-cyan); background: radial-gradient(circle at 5% 10%, rgba(0, 240, 255, 0.08) 0%, var(--bg-card) 70%);">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h3 class="h5 fw-bold text-white mb-0">
+                            <i class="bi bi-envelope-paper-heart-fill text-cyan me-2"></i>Automated Email Outbox & Notification Dispatch (@EmailSvc.GetOutbox().Count)
+                        </h3>
+                        @if (EmailSvc.IsSmtpConfigured)
+                        {
+                            <span class="badge bg-success text-white"><i class="bi bi-wifi me-1"></i>LIVE SMTP ACTIVE</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle me-1"></i>OUTBOX / SIMULATION MODE</span>
+                        }
+                    </div>
+                    <p class="text-secondary small mb-0">
+                        When users are enrolled, login credentials are dispatched to them. Admin password reset codes and system alerts are sent to <code>@EmailSvc.AdminEmail</code>.
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-info" @onclick="ToggleSmtpConfig">
+                        <i class="bi bi-gear-fill me-1"></i> @(showSmtpConfig ? "Hide SMTP Settings" : "Configure Live SMTP")
+                    </button>
+                    <button class="btn btn-sm btn-primary-glow" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4) !important;" @onclick="SendTestAdminEmail" disabled="@isSendingTestEmail">
+                        @if (isSendingTestEmail)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span> <span>Sending...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send-fill me-1"></i> <span>Send Test to @EmailSvc.AdminEmail</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (showSmtpConfig)
+            {
+                <div class="cad-card p-3 mb-3" style="border: 1px solid var(--border-color); background: rgba(10, 16, 28, 0.8);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="h6 fw-bold text-white mb-0"><i class="bi bi-google me-2 text-danger"></i>Google SMTP Live Transmission Configuration</h4>
+                        <span class="badge bg-dark border border-secondary text-secondary">Port: 587 (TLS/SSL)</span>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        To send real external emails directly to recipient inboxes via Google servers, create a 16-character Google App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-cyan">myaccount.google.com/apppasswords</a> and paste it below. 
+                        <em>(If blank, outgoing emails are recorded in the live in-memory Outbox below with full HTML previews).</em>
+                    </p>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small mb-1">Primary Admin & Sender Email</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" value="@EmailSvc.AdminEmail" readonly />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label text-secondary small mb-1">Google App Password (16-char)</label>
+                            <input type="password" class="form-control form-control-sm bg-dark border-secondary text-warning font-monospace" 
+                                   placeholder="xxxx xxxx xxxx xxxx" 
+                                   @bind="smtpPasswordInput" />
+                        </div>
+                        <div class="col-md-3 pt-md-4">
+                            <button class="btn btn-sm btn-outline-cyan w-100" @onclick="SaveSmtpPassword">
+                                <i class="bi bi-check2-circle me-1"></i> Save App Password
+                            </button>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(testEmailFeedback))
+                    {
+                        <div class="alert @(testEmailFeedback.Contains("permanently") || testEmailFeedback.Contains("Success") || testEmailFeedback.Contains("processed") ? "alert-info" : "alert-warning") py-2 px-3 small mt-3 mb-0">
+                            <i class="bi bi-info-circle-fill me-1"></i> @testEmailFeedback
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(resendFeedback))
+            {
+                <div class="alert @(resendFeedback.Contains("successfully") ? "alert-success" : "alert-warning") py-2 px-3 small mb-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi @(resendFeedback.Contains("successfully") ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-warning") me-2"></i>
+                        <span>@resendFeedback</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white btn-sm" @onclick="() => resendFeedback = null"></button>
+                </div>
+            }
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr class="text-secondary small text-uppercase" style="border-bottom: 1px solid var(--border-color);">
+                            <th>Type</th>
+                            <th>Recipient</th>
+                            <th>Subject</th>
+                            <th>Sent Time</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (EmailSvc.GetOutbox().Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-mailbox fs-4 d-block mb-1"></i>
+                                    No automated emails dispatched yet. Enroll a user or click "Send Test" above!
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var email in EmailSvc.GetOutbox())
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge @GetEmailTypeBadgeClass(email.Type)" style="font-size:0.72rem;">
+                                            @email.Type
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="text-white fw-bold small">@email.RecipientName</div>
+                                        <div class="text-cyan font-monospace" style="font-size:0.72rem;">@email.RecipientEmail</div>
+                                    </td>
+                                    <td>
+                                        <div class="text-white small text-truncate" style="max-width: 300px;" title="@email.Subject">
+                                            @email.Subject
+                                        </div>
+                                    </td>
+                                    <td class="small text-muted" style="font-size:0.75rem;">
+                                        @email.SentAt.ToString("MMM dd, HH:mm:ss") UTC
+                                    </td>
+                                    <td>
+                                        <span class="badge @(email.IsSuccess ? "bg-success text-white" : "bg-warning text-dark")" style="font-size:0.72rem;">
+                                            <i class="bi @(email.IsSuccess ? "bi-check-circle" : "bi-clock-history") me-1"></i>@email.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-xs btn-outline-cyan py-1 px-2" style="font-size:0.72rem;" title="Resend email via SMTP" @onclick="() => HandleResendEmail(email)" disabled="@(resendingEmailId == email.Id)">
+                                                @if (resendingEmailId == email.Id)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-send me-1"></i>
+                                                }
+                                                Resend
+                                            </button>
+                                            <button class="btn btn-xs btn-outline-light py-1 px-2" style="font-size:0.72rem;" @onclick="() => OpenEmailPreview(email)">
+                                                <i class="bi bi-eye me-1"></i> Preview
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (selectedPreviewEmail != null)
+        {
+            <!-- Email Preview Modal -->
+            <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.75); z-index: 1055;">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content cad-card" style="border: 2px solid var(--accent-cyan); background: #0c1424;">
+                        <div class="modal-header border-secondary border-opacity-25 pb-2">
+                            <div>
+                                <span class="badge @GetEmailTypeBadgeClass(selectedPreviewEmail.Type) mb-1">@selectedPreviewEmail.Type</span>
+                                <h5 class="modal-title text-white fw-bold">@selectedPreviewEmail.Subject</h5>
+                                <div class="text-secondary small">
+                                    Recipient: <code class="text-cyan">@selectedPreviewEmail.RecipientEmail</code> &bull; Sent: @selectedPreviewEmail.SentAt.ToString("MMM dd, yyyy HH:mm:ss") UTC
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CloseEmailPreview"></button>
+                        </div>
+                        <div class="modal-body p-3" style="background: #070b14; max-height: 500px; overflow-y: auto;">
+                            <div class="border border-secondary border-opacity-25 rounded p-3" style="background: #0b111e;">
+                                @((MarkupString)selectedPreviewEmail.BodyHtml)
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary border-opacity-25 py-2">
+                            <span class="text-secondary small me-auto">
+                                Status: <span class="badge @(selectedPreviewEmail.IsSuccess ? "bg-success" : "bg-warning text-dark")">@selectedPreviewEmail.Status</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="CloseEmailPreview">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Support Tickets Triage Section -->
+        <div class="card-glass p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="h5 fw-bold text-white mb-0"><i class="bi bi-inbox-fill text-warning me-2"></i>Live Student Support Triage</h3>
+                    <p class="text-secondary small mb-0">Incoming technical questions from students on Revit API & C# architecture</p>
+                </div>
+                <a href="support" class="btn btn-sm btn-outline-info">
+                    <span>Open Full Support Desk &rarr;</span>
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                    <thead>
+                        <tr class="text-secondary small text-uppercase" style="border-bottom: 1px solid var(--border-color);">
+                            <th>Ticket ID</th>
+                            <th>Topic / Module</th>
+                            <th>Subject</th>
+                            <th>Student</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ticket in Support.GetTickets().Take(5))
+                        {
+                            <tr>
+                                <td>
+                                    <span class="badge bg-dark border border-secondary text-cyan font-monospace">@ticket.Id</span>
+                                </td>
+                                <td class="small text-secondary">
+                                    @(ticket.ModuleReference ?? "General")
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-white small text-truncate" style="max-width: 320px;" title="@ticket.Title">@ticket.Title</div>
+                                    <div class="text-muted text-truncate" style="font-size: 0.72rem; max-width: 320px;">@ticket.Description</div>
+                                </td>
+                                <td class="small">
+                                    <div class="text-white">@ticket.AuthorName</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">@ticket.AuthorEmail</div>
+                                </td>
+                                <td>
+                                    <span class="badge @GetPriorityBadgeClass(ticket.Priority)">@ticket.Priority</span>
+                                </td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(ticket.Status)">@ticket.Status</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="support" class="btn btn-xs btn-outline-light py-1 px-2" style="font-size:0.75rem;">
+                                        <i class="bi bi-chat-dots me-1"></i> Resolve
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Enrollment Form Model
+    private string enrollFullName = "";
+    private string enrollUsername = "";
+    private string enrollPassword = "Revit#" + new Random().Next(100, 999);
+    private UserRole enrollRole = UserRole.User;
+    private string enrollTitle = "BIM Software Developer";
+    private string enrollOrganization = "Engineering Design Studio";
+
+    private UserAccount? enrolledSuccessAccount;
+    private string? enrollErrorMessage;
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += StateHasChanged;
+        Support.OnTicketsChanged += StateHasChanged;
+        EmailSvc.OnEmailDispatched += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+        Support.OnTicketsChanged -= StateHasChanged;
+        EmailSvc.OnEmailDispatched -= StateHasChanged;
+    }
+
+    private void QuickLoginAdmin()
+    {
+        Auth.QuickLogin(UserRole.Admin);
+    }
+
+    private void HandleLogout()
+    {
+        Auth.Logout();
+        NavManager.NavigateTo("");
+    }
+
+    private void GenerateRandomPassword()
+    {
+        var randomNum = new Random().Next(100, 999);
+        enrollPassword = $"Revit#{randomNum}";
+    }
+
+    private void HandleEnrollUser()
+    {
+        enrollErrorMessage = null;
+        var portalUrl = NavManager.BaseUri.TrimEnd('/') + "/login";
+        var (success, error, account) = Auth.EnrollUser(
+            enrollFullName,
+            enrollUsername,
+            enrollPassword,
+            enrollRole,
+            enrollTitle,
+            enrollOrganization,
+            portalUrl);
+
+        if (success && account != null)
+        {
+            enrolledSuccessAccount = account;
+            enrollFullName = "";
+            enrollUsername = "";
+            GenerateRandomPassword();
+        }
+        else
+        {
+            enrollErrorMessage = error ?? "Failed to enroll user.";
+        }
+    }
+
+    private void HandleDeleteUser(string userId)
+    {
+        Auth.DeleteUser(userId);
+    }
+
+    // Email Outbox & Live SMTP Model
+    private bool showSmtpConfig = false;
+    private string smtpPasswordInput = "";
+    private string? testEmailFeedback;
+    private bool isSendingTestEmail = false;
+    private EmailMessage? selectedPreviewEmail;
+    private string? resendFeedback;
+    private string? resendingEmailId;
+    private bool showInlineSmtp = true;
+    private bool isDispatchingNow = false;
+    private string? inlineSmtpFeedback;
+
+    private async Task SaveAndDispatchNow()
+    {
+        if (string.IsNullOrWhiteSpace(smtpPasswordInput))
+        {
+            inlineSmtpFeedback = "Please enter your 16-character Google App Password first.";
+            return;
+        }
+
+        isDispatchingNow = true;
+        inlineSmtpFeedback = null;
+        try
+        {
+            await EmailSvc.SaveSmtpPasswordAsync(smtpPasswordInput.Trim());
+            
+            // Find the most recent email for this enrolled user
+            if (enrolledSuccessAccount != null)
+            {
+                var outboxMsg = EmailSvc.GetOutbox().FirstOrDefault(e => e.RecipientEmail == enrolledSuccessAccount.Email);
+                if (outboxMsg != null)
+                {
+                    var (success, status, err) = await EmailSvc.ResendEmailAsync(outboxMsg);
+                    if (success)
+                    {
+                        inlineSmtpFeedback = $"Success! Credentials delivered via Google SMTP to {enrolledSuccessAccount.Email}.";
+                    }
+                    else
+                    {
+                        inlineSmtpFeedback = $"Google SMTP Error: {err ?? status}. Make sure 2-Step Verification is on and the 16-character App Password is correct.";
+                    }
+                }
+                else
+                {
+                    inlineSmtpFeedback = "App Password saved to appsettings.json! Ready to send emails.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            inlineSmtpFeedback = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isDispatchingNow = false;
+        }
+    }
+
+    private void ToggleSmtpConfig() => showSmtpConfig = !showSmtpConfig;
+
+    private async Task SaveSmtpPassword()
+    {
+        var saved = await EmailSvc.SaveSmtpPasswordAsync(smtpPasswordInput.Trim());
+        if (saved)
+        {
+            testEmailFeedback = "Google App Password permanently saved to appsettings.json! You can now send real emails or click 'Resend' on any outbox item.";
+        }
+        else
+        {
+            testEmailFeedback = "App Password applied in memory. Click 'Send Test' to verify live transmission.";
+        }
+    }
+
+    private async Task HandleResendEmail(EmailMessage email)
+    {
+        resendingEmailId = email.Id;
+        resendFeedback = null;
+        try
+        {
+            var (success, status, err) = await EmailSvc.ResendEmailAsync(email);
+            if (success)
+            {
+                resendFeedback = $"Successfully dispatched email to {email.RecipientEmail} via Live SMTP!";
+            }
+            else
+            {
+                resendFeedback = $"Failed to deliver to {email.RecipientEmail}: {err ?? status}";
+                if (!EmailSvc.IsSmtpConfigured)
+                {
+                    showSmtpConfig = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            resendFeedback = $"Error resending email: {ex.Message}";
+        }
+        finally
+        {
+            resendingEmailId = null;
+        }
+    }
+
+    private async Task SendTestAdminEmail()
+    {
+        isSendingTestEmail = true;
+        testEmailFeedback = null;
+        try
+        {
+            var msg = await EmailSvc.SendAdminNotificationAsync(
+                "Live Test Transmission - Autodesk Revit API & C# Academy",
+                $"<p>This is a live test notification to verify that automated email routing to <strong>{EmailSvc.AdminEmail}</strong> is fully active!</p>" +
+                $"<p>Platform status: Online and listening on <code>http://0.0.0.0:5078</code>.</p>");
+            
+            testEmailFeedback = msg.IsSuccess 
+                ? $"Test email successfully processed ({msg.Status}) for {EmailSvc.AdminEmail}." 
+                : $"Notice: {msg.Status} - {msg.ErrorMessage}";
+        }
+        catch (Exception ex)
+        {
+            testEmailFeedback = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSendingTestEmail = false;
+        }
+    }
+
+    private void OpenEmailPreview(EmailMessage email) => selectedPreviewEmail = email;
+    private void CloseEmailPreview() => selectedPreviewEmail = null;
+
+    private string GetEmailTypeBadgeClass(EmailType type) => type switch
+    {
+        EmailType.UserCredentials => "bg-cyan text-dark fw-bold",
+        EmailType.PasswordReset => "bg-purple text-white",
+        EmailType.SystemNotification => "bg-info text-dark",
+        _ => "bg-secondary text-white"
+    };
+
+    private string GetPriorityBadgeClass(TicketPriority priority) => priority switch
+    {
+        TicketPriority.Urgent => "bg-danger text-white",
+        TicketPriority.High => "bg-warning text-dark fw-bold",
+        TicketPriority.Medium => "bg-info text-dark",
+        _ => "bg-secondary text-white"
+    };
+
+    private string GetStatusBadgeClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "bg-warning text-dark fw-bold",
+        TicketStatus.InProgress => "bg-info text-dark fw-bold",
+        TicketStatus.Resolved => "bg-success text-white",
+        _ => "bg-secondary text-white"
+    };
+}

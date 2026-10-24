@@ -1,0 +1,456 @@
+@page "/topic/{TopicId}"
+@inject CurriculumService Curriculum
+@inject ProgressService Progress
+@inject AuthService Auth
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@implements IDisposable
+
+@if (!Auth.IsAuthenticated)
+{
+    <!-- Locked Lesson Security Gate -->
+    <div class="row justify-content-center my-5">
+        <div class="col-lg-8 col-xl-7">
+            <div class="cad-card cad-bracket p-5 text-center position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: rgba(0,240,255,0.15) !important;">
+                    <span class="cad-drawing-tag">
+                        <span>ACCESS CONTROL:</span>
+                        <strong class="text-danger">AUTHENTICATION REQUIRED</strong>
+                    </span>
+                    <span class="font-monospace text-secondary small">SECURITY: ENROLLED STUDENTS ONLY</span>
+                </div>
+                
+                <div class="brand-icon mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem; background: rgba(0, 240, 255, 0.15); color: var(--accent-cyan);">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                
+                <h1 class="h3 fw-bold text-white mb-2">Course Access Restricted</h1>
+                <p class="text-secondary small mb-4" style="max-width: 540px; margin: 0 auto; line-height: 1.7;">
+                    The lessons, C# production code samples, architectural diagrams, pitfall guides, and quizzes in this academy are strictly reserved for enrolled students and instructors.
+                </p>
+                
+                <div class="p-3 mb-4 rounded border text-start mx-auto" style="max-width: 480px; font-size: 0.85rem; background: rgba(6,11,20,0.85); border-color: rgba(0,240,255,0.2) !important;">
+                    <div class="d-flex align-items-center gap-2 mb-2 text-cyan fw-bold">
+                        <i class="bi bi-file-earmark-lock2-fill"></i>
+                        <span>Protected Lesson: @(currentTopic?.Title ?? TopicId)</span>
+                    </div>
+                    <div class="text-secondary small">
+                        Please sign in with your credentials to access this course lesson. If you do not have an account yet, please contact an academy administrator or submit a request to support.
+                    </div>
+                </div>
+                
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="login?returnUrl=topic/@TopicId" class="btn-primary-glow">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Access Lesson
+                    </a>
+                    <a href="support" class="btn-outline-glow">
+                        <i class="bi bi-headset me-1"></i> Contact Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else if (currentTopic == null)
+{
+    <div class="card-glass p-5 text-center">
+        <h2 class="text-white mb-3">Lesson Not Found</h2>
+        <p class="text-secondary">The requested topic ID "@TopicId" could not be located in the curriculum.</p>
+        <a href="" class="btn-primary-glow mt-3">Back to Academy Home</a>
+    </div>
+}
+else
+{
+    var currentModule = Curriculum.GetModule(currentTopic.ModuleId);
+    var track = Curriculum.GetTrack(currentTopic.TrackId);
+    var isCompleted = Progress.IsTopicCompleted(currentTopic.Id);
+    var (prevTopic, nextTopic) = Curriculum.GetAdjacentTopics(currentTopic.Id);
+
+    <div class="mb-5">
+        <!-- Breadcrumb & Top Actions -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0" style="font-size: 0.85rem;">
+                    <li class="breadcrumb-item"><a href="">Academy</a></li>
+                    <li class="breadcrumb-item text-secondary">@(track?.Title ?? "Track")</li>
+                    <li class="breadcrumb-item text-secondary">Stage @(currentModule?.StageNumber ?? 1)</li>
+                    <li class="breadcrumb-item text-secondary">@(currentModule?.Title ?? "Module")</li>
+                    <li class="breadcrumb-item active text-cyan" aria-current="page">@currentTopic.Title</li>
+                </ol>
+            </nav>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn @(isCompleted ? "btn-success text-white" : "btn-outline-secondary") btn-sm px-3" 
+                        @onclick="ToggleCompleted">
+                    <i class="bi @(isCompleted ? "bi-check-circle-fill" : "bi-circle") me-1"></i>
+                    <span>@(isCompleted ? "Completed" : "Mark as Completed")</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Topic Header Card -->
+        <div class="card-glass p-4 mb-4" style="border-left: 4px solid @(track?.AccentColor ?? "var(--accent-cyan)");">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="badge-pill @GetStageBadgeClass(currentModule?.StageNumber ?? 1)">
+                    <i class="bi bi-mortarboard-fill me-1"></i>STAGE @(currentModule?.StageNumber ?? 1): @(GetStageName(currentModule?.StageNumber ?? 1))
+                </span>
+                <span class="badge-pill @GetDifficultyClass(currentTopic.Level)">@currentTopic.Level</span>
+                <span class="text-secondary small"><i class="bi bi-clock me-1"></i>@currentTopic.ReadTimeMinutes min read</span>
+                <span class="text-secondary small"><i class="bi bi-folder me-1"></i>@(currentModule?.Title)</span>
+            </div>
+
+            <h1 class="h2 fw-bold text-white mb-2">@currentTopic.Title</h1>
+            <p class="lead text-secondary mb-3" style="font-size: 1.05rem;">@currentTopic.Subtitle</p>
+
+            <!-- Key Takeaways Pill Container -->
+            @if (currentTopic.KeyTakeaways.Any())
+            {
+                <div class="p-3 rounded bg-black bg-opacity-25 mt-3" style="border: 1px solid var(--border-color);">
+                    <div class="text-uppercase small fw-bold mb-2 text-cyan" style="font-size: 0.72rem; letter-spacing: 0.06em;">
+                        <i class="bi bi-lightbulb-fill me-1"></i> Key Takeaways
+                    </div>
+                    <ul class="mb-0 ps-3 text-secondary small" style="line-height: 1.6;">
+                        @foreach (var item in currentTopic.KeyTakeaways)
+                        {
+                            <li class="mb-1">@item</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="d-flex gap-2 mb-4 border-bottom border-secondary pb-2" style="border-color: var(--border-color) !important;">
+            <button class="btn @(activeTab == "theory" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" 
+                    @onclick='() => activeTab = "theory"'>
+                <i class="bi bi-book me-1"></i> Theory & Architecture
+            </button>
+            <button class="btn @(activeTab == "code" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" 
+                    @onclick='() => activeTab = "code"'>
+                <i class="bi bi-code-square me-1"></i> C# Code Samples (@currentTopic.CodeSnippets.Count)
+            </button>
+            <button class="btn @(activeTab == "pitfalls" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" 
+                    @onclick='() => activeTab = "pitfalls"'>
+                <i class="bi bi-exclamation-triangle text-danger me-1"></i> Real-World Pitfalls (@currentTopic.Pitfalls.Count)
+            </button>
+            <button class="btn @(activeTab == "quiz" ? "btn-primary-glow" : "btn-outline-secondary") btn-sm px-3" 
+                    @onclick='() => activeTab = "quiz"'>
+                <i class="bi bi-patch-question text-warning me-1"></i> Knowledge Check (@currentTopic.Quizzes.Count)
+            </button>
+        </div>
+
+        <!-- Tab 1: Theory & Concepts -->
+        @if (activeTab == "theory")
+        {
+            <div class="card-glass p-4 mb-4">
+                @foreach (var sec in currentTopic.Sections)
+                {
+                    <div class="mb-4">
+                        <h3 class="h4 fw-bold text-white mb-3">@sec.Title</h3>
+                        <div class="text-secondary mb-3" style="line-height: 1.7; font-size: 0.95rem;">
+                            @((MarkupString)sec.ContentHtml)
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(sec.CalloutText))
+                        {
+                            <div class="p-3 rounded mb-3 @GetCalloutClass(sec.CalloutType)">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi @GetCalloutIcon(sec.CalloutType) fs-5"></i>
+                                    <div>@sec.CalloutText</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (!currentTopic.Sections.Any())
+                {
+                    <p class="text-muted">Detailed concepts are covered directly in the C# code samples tab.</p>
+                }
+            </div>
+        }
+
+        <!-- Tab 2: C# Code Samples -->
+        @if (activeTab == "code")
+        {
+            @foreach (var (snippet, idx) in currentTopic.CodeSnippets.Select((s, i) => (s, i)))
+            {
+                <div class="card-glass p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h4 class="h5 fw-bold text-white mb-1">@snippet.Title</h4>
+                            <div class="text-secondary small">@snippet.Description</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(snippet.VersionNote))
+                        {
+                            <span class="badge bg-dark border border-secondary text-info">@snippet.VersionNote</span>
+                        }
+                    </div>
+
+                    <!-- Code box -->
+                    <div class="code-box">
+                        <div class="code-header">
+                            <span class="code-title">C# Source Code</span>
+                            <button id="copy-btn-@idx" class="code-copy-btn" @onclick='() => CopyCode(snippet.Code, $"copy-btn-{idx}")'>
+                                <i class="bi bi-clipboard"></i>
+                                <span>Copy Code</span>
+                            </button>
+                        </div>
+                        <pre class="code-content"><code>@snippet.Code</code></pre>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(snippet.Explanation))
+                    {
+                        <div class="p-3 bg-black bg-opacity-25 rounded small text-secondary" style="border: 1px solid var(--border-color);">
+                            <strong class="text-cyan">Code Breakdown: </strong>@snippet.Explanation
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        <!-- Tab 3: Real-World Pitfalls -->
+        @if (activeTab == "pitfalls")
+        {
+            @if (!currentTopic.Pitfalls.Any())
+            {
+                <div class="card-glass p-4 text-center text-muted">
+                    No critical pitfalls documented for this introductory section.
+                </div>
+            }
+            else
+            {
+                @foreach (var pitfall in currentTopic.Pitfalls)
+                {
+                    <div class="pitfall-container">
+                        <div class="pitfall-header">
+                            <i class="bi bi-exclamation-octagon-fill"></i>
+                            <span>@pitfall.Title</span>
+                        </div>
+                        <p class="text-secondary small mb-3">@pitfall.Description</p>
+
+                        <div class="pitfall-grid">
+                            <div class="code-bad">
+                                <div class="code-tag"><i class="bi bi-x-circle me-1"></i> BAD / CRASH CODE</div>
+                                <pre class="p-3 font-monospace small text-danger mb-0" style="overflow-x:auto;"><code>@pitfall.BadCode</code></pre>
+                            </div>
+
+                            <div class="code-good">
+                                <div class="code-tag"><i class="bi bi-check-circle me-1"></i> RECOMMENDED / SAFE CODE</div>
+                                <pre class="p-3 font-monospace small text-success mb-0" style="overflow-x:auto;"><code>@pitfall.GoodCode</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 p-2 rounded bg-black bg-opacity-30 small text-secondary">
+                            <strong class="text-warning">Why It Matters: </strong>@pitfall.WhyItMatters
+                        </div>
+                    </div>
+                }
+            }
+        }
+
+        <!-- Tab 4: Knowledge Check Quiz -->
+        @if (activeTab == "quiz")
+        {
+            @if (!currentTopic.Quizzes.Any())
+            {
+                <div class="card-glass p-4 text-center text-muted">
+                    No quiz questions available for this module yet.
+                </div>
+            }
+            else
+            {
+                @foreach (var (q, qIdx) in currentTopic.Quizzes.Select((item, i) => (item, i)))
+                {
+                    var isAnswered = selectedAnswers.ContainsKey(q.Id);
+                    var selectedIdx = isAnswered ? selectedAnswers[q.Id] : -1;
+                    var isCorrect = selectedIdx == q.CorrectOptionIndex;
+
+                    <div class="quiz-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-secondary" style="font-size:0.75rem;">Question @(qIdx + 1) of @currentTopic.Quizzes.Count</span>
+                            @if (isAnswered)
+                            {
+                                <span class="badge @(isCorrect ? "bg-success" : "bg-danger")">
+                                    @(isCorrect ? "Correct!" : "Incorrect")
+                                </span>
+                            }
+                        </div>
+
+                        <h4 class="h5 text-white mb-3">@q.Question</h4>
+
+                        @if (!string.IsNullOrEmpty(q.CodeSnippet))
+                        {
+                            <pre class="bg-black p-3 rounded text-info small mb-3 font-monospace"><code>@q.CodeSnippet</code></pre>
+                        }
+
+                        <div class="quiz-options">
+                            @foreach (var (opt, optIdx) in q.Options.Select((text, idx) => (text, idx)))
+                            {
+                                var btnClass = "";
+                                if (isAnswered)
+                                {
+                                    if (optIdx == q.CorrectOptionIndex)
+                                        btnClass = "correct";
+                                    else if (optIdx == selectedIdx)
+                                        btnClass = "incorrect";
+                                }
+
+                                <button class="quiz-option-btn @btnClass" 
+                                        disabled="@isAnswered"
+                                        @onclick="() => AnswerQuiz(q.Id, optIdx, q.CorrectOptionIndex)">
+                                    <span class="badge bg-dark border border-secondary text-secondary">@( (char)('A' + optIdx) )</span>
+                                    <span>@opt</span>
+                                </button>
+                            }
+                        </div>
+
+                        @if (isAnswered)
+                        {
+                            <div class="quiz-explanation">
+                                <strong class="text-cyan">Explanation: </strong>@q.Explanation
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        }
+
+        <!-- Bottom Lesson Navigation -->
+        <div class="d-flex justify-content-between align-items-center mt-5 pt-4 border-top border-secondary" style="border-color: var(--border-color) !important;">
+            @if (prevTopic != null)
+            {
+                <a href="topic/@prevTopic.Id" class="btn-outline-glow py-2">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    <span>Previous: @prevTopic.Title</span>
+                </a>
+            }
+            else
+            {
+                <div></div>
+            }
+
+            @if (nextTopic != null)
+            {
+                <a href="topic/@nextTopic.Id" class="btn-primary-glow py-2">
+                    <span>Next: @nextTopic.Title</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            }
+            else
+            {
+                <a href="" class="btn-primary-glow py-2">
+                    <span>Complete Track & Return Home</span>
+                    <i class="bi bi-trophy ms-1"></i>
+                </a>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? TopicId { get; set; }
+
+    private Topic? currentTopic;
+    private string activeTab = "theory";
+    private Dictionary<string, int> selectedAnswers = new();
+
+    protected override void OnInitialized()
+    {
+        Auth.OnAuthStateChanged += StateHasChanged;
+        Progress.OnChange += StateHasChanged;
+
+        if (!Auth.IsAuthenticated && !string.IsNullOrEmpty(TopicId))
+        {
+            NavManager.NavigateTo($"login?returnUrl=topic/{TopicId}");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            if (!string.IsNullOrEmpty(TopicId))
+            {
+                NavManager.NavigateTo($"login?returnUrl=topic/{TopicId}");
+            }
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(TopicId))
+        {
+            currentTopic = Curriculum.GetTopic(TopicId);
+            activeTab = "theory";
+            selectedAnswers.Clear();
+        }
+    }
+
+    public void Dispose()
+    {
+        Auth.OnAuthStateChanged -= StateHasChanged;
+        Progress.OnChange -= StateHasChanged;
+    }
+
+    private void ToggleCompleted()
+    {
+        if (currentTopic != null)
+        {
+            Progress.ToggleTopicCompleted(currentTopic.Id);
+        }
+    }
+
+    private async Task CopyCode(string code, string btnId)
+    {
+        await JS.InvokeVoidAsync("clipboardHelper.copyText", code, btnId);
+    }
+
+    private void AnswerQuiz(string questionId, int selectedIndex, int correctIndex)
+    {
+        selectedAnswers[questionId] = selectedIndex;
+        if (selectedIndex == correctIndex && currentTopic != null)
+        {
+            Progress.RecordQuizScore(currentTopic.Id, 100);
+        }
+    }
+
+    private string GetDifficultyClass(DifficultyLevel level) => level switch
+    {
+        DifficultyLevel.Beginner => "badge-beginner",
+        DifficultyLevel.Intermediate => "badge-intermediate",
+        DifficultyLevel.Advanced => "badge-advanced",
+        _ => "badge-expert"
+    };
+
+    private string GetStageBadgeClass(int stageNumber) => stageNumber switch
+    {
+        1 => "badge-beginner",
+        2 => "badge-intermediate",
+        3 => "badge-advanced",
+        _ => "badge-expert"
+    };
+
+    private string GetStageName(int stageNumber) => stageNumber switch
+    {
+        1 => "Foundations (Basics)",
+        2 => "Core Intermediate",
+        3 => "Advanced Engineering",
+        _ => "Master Architecture"
+    };
+
+    private string GetLevelBadgeClass(int l) => GetStageBadgeClass(l);
+    private string GetLevelName(int l) => GetStageName(l);
+
+    private string GetCalloutClass(string? type) => type switch
+    {
+        "warning" => "bg-danger bg-opacity-10 border border-danger text-danger",
+        "tip" => "bg-success bg-opacity-10 border border-success text-success",
+        _ => "bg-info bg-opacity-10 border border-info text-info"
+    };
+
+    private string GetCalloutIcon(string? type) => type switch
+    {
+        "warning" => "bi-exclamation-triangle-fill text-danger",
+        "tip" => "bi-lightbulb-fill text-success",
+        _ => "bi-info-circle-fill text-info"
+    };
+}

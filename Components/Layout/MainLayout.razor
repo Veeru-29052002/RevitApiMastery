@@ -1,0 +1,276 @@
+@inherits LayoutComponentBase
+@inject CurriculumService Curriculum
+@inject ProgressService Progress
+@inject AuthService Auth
+@inject SupportService Support
+@inject NavigationManager NavManager
+@implements IDisposable
+
+@if (!Auth.IsAuthenticated)
+{
+    <!-- Unauthenticated High-Security CAD Gateway (Only Login Is Accessible) -->
+    <div class="auth-gate-canvas d-flex flex-column justify-content-center align-items-center py-5 px-3">
+        <div class="w-100" style="max-width: 820px;">
+            @Body
+        </div>
+        <div class="text-center mt-4 font-monospace text-secondary small" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+            <div class="text-cyan fw-bold mb-1">AUTODESK REVIT API & MODERN C# MASTER ACADEMY</div>
+            <div class="text-muted">PROTECTED INDUSTRIAL WORKSTATION &bull; VALID CREDENTIALS REQUIRED TO ENTER</div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Fully Authenticated Academy Studio Shell -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <NavMenu IsMobileOpen="@isMobileSidebarOpen" IsMobileOpenChanged="@((val) => isMobileSidebarOpen = val)" />
+
+        <!-- Main Content Stage -->
+        <div class="app-main">
+            <!-- Sticky Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="btn btn-dark d-lg-none p-1 px-2 border-secondary" @onclick="ToggleMobileSidebar">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+
+                    <!-- Global Search -->
+                    <div class="search-container">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" 
+                               class="search-input" 
+                               placeholder="Search API classes, C# topics, snippets..." 
+                               @bind="searchQuery" 
+                               @bind:event="oninput" 
+                               @onfocus="() => isSearchFocused = true" />
+
+                        @if (isSearchFocused && !string.IsNullOrWhiteSpace(searchQuery))
+                        {
+                            var results = Curriculum.SearchTopics(searchQuery);
+                            <div class="search-results-dropdown">
+                                @if (results.Any())
+                                {
+                                    @foreach (var r in results)
+                                    {
+                                        <a href="topic/@r.Id" class="search-item" @onclick="ClearSearch">
+                                            <div class="search-item-title">
+                                                <i class="bi @(r.TrackId == "csharp" ? "bi-filetype-cs text-purple" : "bi-boxes text-cyan") me-1"></i>
+                                                @r.Title
+                                            </div>
+                                            <div class="search-item-subtitle">@r.Subtitle</div>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="p-3 text-center text-muted" style="font-size:0.85rem;">
+                                        No matching lessons found for "@searchQuery"
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Navigation Quick Links -->
+                    <div class="header-nav-links d-none d-xxl-flex">
+                        <a href="" class="nav-tool-link">
+                            <i class="bi bi-house"></i>
+                            <span>Home</span>
+                        </a>
+                        <a href="syllabus" class="nav-tool-link">
+                            <i class="bi bi-list-check text-cyan"></i>
+                            <span>Syllabus (98)</span>
+                        </a>
+                        <a href="sandbox" class="nav-tool-link">
+                            <i class="bi bi-play-circle text-warning"></i>
+                            <span>Sandbox</span>
+                        </a>
+                        <a href="manifest-tool" class="nav-tool-link">
+                            <i class="bi bi-file-code text-info"></i>
+                            <span>Manifest Tool</span>
+                        </a>
+                        <a href="boilerplate-tool" class="nav-tool-link">
+                            <i class="bi bi-tools text-primary"></i>
+                            <span>Scaffolder</span>
+                        </a>
+                        <a href="cheatsheet" class="nav-tool-link">
+                            <i class="bi bi-journal-code text-success"></i>
+                            <span>Cheat Sheet</span>
+                        </a>
+                        <a href="support" class="nav-tool-link">
+                            <i class="bi bi-headset text-info"></i>
+                            <span>Support</span>
+                        </a>
+                        <a href="account" class="nav-tool-link">
+                            <i class="bi bi-person-gear text-cyan"></i>
+                            <span>Account</span>
+                        </a>
+                        @if (Auth.IsAdmin)
+                        {
+                            <a href="admin" class="nav-tool-link" style="color: #c084fc !important;">
+                                <i class="bi bi-shield-lock-fill text-purple"></i>
+                                <span>Admin Console</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+
+                <!-- Header Right: Progress & Status -->
+                <div class="header-actions">
+                    <div class="progress-pill">
+                        <div class="d-flex flex-column">
+                            <span style="font-size: 0.65rem; color: var(--text-tertiary);">ACADEMY PROGRESS</span>
+                            <span style="color: var(--accent-cyan);">@CalculateTotalProgress()% Done</span>
+                        </div>
+                        <div class="progress-bar-micro">
+                            <div class="progress-fill-micro" style="width: @(CalculateTotalProgress())%;"></div>
+                        </div>
+                    </div>
+
+                    <a href="https://github.com/jeremytammik/RevitLookup" target="_blank" class="btn-outline-glow py-1 px-3" style="font-size: 0.8rem;" title="Official RevitLookup Repository">
+                        <i class="bi bi-github"></i>
+                        <span class="d-none d-sm-inline">RevitLookup</span>
+                    </a>
+
+                    <a href="account" class="d-flex align-items-center gap-2 px-2 py-1 rounded text-decoration-none" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); cursor: pointer;" title="Account Settings & Profile">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" 
+                             style="width: 28px; height: 28px; background: @Auth.CurrentUser?.AvatarColor; font-size: 0.75rem;">
+                            @Auth.CurrentUser?.FullName.Substring(0, 1)
+                        </div>
+                        <div class="d-none d-md-flex flex-column text-start" style="line-height: 1.1;">
+                            <span class="text-white fw-bold" style="font-size:0.75rem;">@Auth.CurrentUser?.FullName</span>
+                            <span class="@(Auth.IsAdmin ? "text-purple" : "text-success")" style="font-size:0.65rem; font-weight:600;">
+                                @(Auth.IsAdmin ? "ADMIN" : "STUDENT")
+                            </span>
+                        </div>
+                    </a>
+                    <button class="btn btn-xs btn-outline-secondary p-1" style="font-size:0.75rem;" title="Sign Out" @onclick="() => Auth.Logout()">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Technical BIM Telemetry HUD Bar -->
+            <div class="hud-telemetry-bar d-none d-lg-flex">
+                <div class="d-flex align-items-center gap-4">
+                    <div class="hud-item">
+                        <span class="hud-beacon"></span>
+                        <span>ENGINE:</span>
+                        <strong class="text-cyan">REVIT 2025.3.1 x64</strong>
+                    </div>
+                    <div class="hud-item">
+                        <i class="bi bi-cpu text-secondary"></i>
+                        <span>CLR HOST:</span>
+                        <strong class="text-white">.NET 8.0 CLR</strong>
+                    </div>
+                    <div class="hud-item">
+                        <i class="bi bi-building text-secondary"></i>
+                        <span>PROJECT:</span>
+                        <strong class="text-white">Tower_Central_Structural.rvt</strong>
+                    </div>
+                    <div class="hud-item">
+                        <i class="bi bi-arrow-repeat text-success"></i>
+                        <span>TRANSACTION:</span>
+                        <span class="text-success fw-bold">[COMMITTED]</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-4">
+                    <div class="hud-item">
+                        <i class="bi bi-compass text-secondary"></i>
+                        <span>UCS:</span>
+                        <span class="text-secondary">WCS (0.00, 0.00, 0.00)</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="cad-drawing-tag">
+                            <span>DWG-SYS:</span>
+                            <strong>REVIT-API-PRO</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Content -->
+            <main class="page-content" @onclick="HandlePageClick">
+                @Body
+            </main>
+        </div>
+    </div>
+}
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool isMobileSidebarOpen = false;
+    private string searchQuery = string.Empty;
+    private bool isSearchFocused = false;
+
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+        Auth.OnAuthStateChanged += OnAuthChanged;
+        NavManager.LocationChanged += OnLocationChanged;
+        EnforceAuthentication();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        EnforceAuthentication();
+        StateHasChanged();
+    }
+
+    private void OnAuthChanged()
+    {
+        EnforceAuthentication();
+        StateHasChanged();
+    }
+
+    private void EnforceAuthentication()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            var relative = NavManager.ToBaseRelativePath(NavManager.Uri);
+            var pathOnly = relative.Split('?')[0];
+            if (!pathOnly.Equals("login", StringComparison.OrdinalIgnoreCase))
+            {
+                var returnUrlParam = string.IsNullOrWhiteSpace(relative) ? "" : $"?returnUrl={Uri.EscapeDataString(relative)}";
+                NavManager.NavigateTo($"login{returnUrlParam}");
+            }
+        }
+    }
+
+    private void ToggleMobileSidebar() => isMobileSidebarOpen = !isMobileSidebarOpen;
+
+    private void HandlePageClick()
+    {
+        if (isSearchFocused)
+        {
+            isSearchFocused = false;
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        isSearchFocused = false;
+    }
+
+    private int CalculateTotalProgress()
+    {
+        int total = Curriculum.GetTotalTopicsCount();
+        if (total == 0) return 0;
+        int completed = Progress.State.CompletedTopicIds.Count;
+        return (int)Math.Min(100, Math.Round((double)completed / total * 100));
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+        Auth.OnAuthStateChanged -= OnAuthChanged;
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}
